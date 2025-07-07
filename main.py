@@ -5,6 +5,10 @@ import asyncio
 from dotenv import load_dotenv
 from utils.logger import setup_logger
 
+from keep_alive import keep_alive
+keep_alive()
+
+
 setup_logger()
 
 load_dotenv()
