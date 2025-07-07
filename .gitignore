@@ -1,0 +1,4 @@
+.env
+venv/
+vikrant.log
+__pycache__/
