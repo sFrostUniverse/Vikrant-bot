@@ -35,7 +35,7 @@ GUILD_ID = 1390547002693255331
 async def on_ready():
     await client.wait_until_ready()
     try:
-        synced = await client.tree.sync()
+        synced = await client.tree.sync(guild=discord.Object(id=GUILD_ID))
         print(f"✅ Synced {len(synced)} global command(s).")
     except Exception as e:
         print(f"❌ Failed to sync commands: {e}")
