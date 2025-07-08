@@ -18,9 +18,18 @@ class Setup(commands.Cog):
 
     @app_commands.command(name="setup", description="Configure Vikrant in your server")
     async def setup(self, interaction: Interaction):
-        if interaction.user.id != interaction.guild.owner_id:
-            return await interaction.response.send_message("Only the server owner can use this command!", ephemeral=True)
+        # 🪄 Debug output
+        print(f"User ID: {interaction.user.id} | Owner ID: {interaction.guild.owner_id}")
 
+        if interaction.user.id != interaction.guild.owner_id:
+            return await interaction.response.send_message(
+                f"❌ Only the server owner can use this command!\n"
+                f"Your ID: {interaction.user.id}\n"
+                f"Owner ID: {interaction.guild.owner_id}",
+                ephemeral=True
+            )
+
+        # ✅ Save config if check passes
         with open(CONFIG_FILE) as f:
             config = json.load(f)
 
@@ -31,7 +40,11 @@ class Setup(commands.Cog):
 
         self.save_config(config)
 
-        await interaction.response.send_message(f"✅ Setup complete, <@{interaction.user.id}>!", ephemeral=True)
+        await interaction.response.send_message(
+            f"✅ Setup complete, <@{interaction.user.id}>!",
+            ephemeral=True
+        )
 
+# Register the cog
 async def setup(bot):
     await bot.add_cog(Setup(bot))
