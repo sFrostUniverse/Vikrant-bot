@@ -7,12 +7,6 @@ from utils.logger import setup_logger
 from keep_alive import keep_alive
 
 keep_alive()
-
-
-from keep_alive import keep_alive
-keep_alive()
-
-
 setup_logger()
 
 load_dotenv()
@@ -21,8 +15,6 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True  # Optional but good for member checks
-
-
 
 client = commands.Bot(command_prefix="!", intents=intents)
 client.synced = False 
@@ -46,8 +38,6 @@ async def on_ready():
         print(f"✅ Synced {len(synced)} global command(s).")
     except Exception as e:
         print(f"❌ Failed to sync commands: {e}")
-
-
 
 async def main():
     await load_cogs()  
