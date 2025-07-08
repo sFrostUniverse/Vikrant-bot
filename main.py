@@ -18,7 +18,11 @@ setup_logger()
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-intents = discord.Intents.all()
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True  # Optional but good for member checks
+
+
 
 client = commands.Bot(command_prefix="!", intents=intents)
 client.synced = False 
