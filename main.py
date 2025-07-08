@@ -13,8 +13,9 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
+intents.message_content = True  # ✅ MUST be explicitly enabled
 intents.guilds = True
-intents.members = True  # Optional but good for member checks
+intents.members = True  # Optional, but good for setup & moderation
 
 client = commands.Bot(command_prefix="!", intents=intents)
 client.synced = False 
