@@ -9,7 +9,7 @@ class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def save_config(self, guild_id, admin_channel_id, complaint_channel_id):
+    async def save_config(self, guild_id, admin_channel_id, complaint_channel_id, trusted_admin_id):
         if not os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, "w") as f:
                 json.dump({}, f)
@@ -19,7 +19,10 @@ class Setup(commands.Cog):
 
         data[str(guild_id)] = {
             "admin_channel_id": admin_channel_id,
-            "complaint_channel_id": complaint_channel_id
+            "complaint_channel_id": complaint_channel_id,
+            "trusted_admins": [trusted_admin_id],
+            "auto_punish": True,
+            "punishment_type": "ban"
         }
 
         with open(CONFIG_FILE, "w") as f:
@@ -31,16 +34,13 @@ class Setup(commands.Cog):
             await interaction.response.send_message("❌ You must be an administrator to run setup.", ephemeral=True)
             return
 
-        # Check existing channels
-        admin_channel = discord.utils.get(interaction.guild.text_channels, name="vikrant-admin")
-        complaint_channel = discord.utils.get(interaction.guild.text_channels, name="complaints")
-
         view = SetupChoiceView(self, interaction)
         await interaction.response.send_message(
             "**🔧 Setup Vikrant:**\nWould you like me to auto-create admin and complaint channels or configure manually?",
             view=view,
             ephemeral=True
         )
+
 
 class SetupChoiceView(discord.ui.View):
     def __init__(self, cog, interaction):
@@ -52,7 +52,6 @@ class SetupChoiceView(discord.ui.View):
     async def auto_create(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = interaction.guild
 
-        # Create admin channel (private to admins)
         overwrites_admin = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.me: discord.PermissionOverwrite(view_channel=True)
@@ -63,7 +62,6 @@ class SetupChoiceView(discord.ui.View):
 
         admin_channel = await guild.create_text_channel("vikrant-admin", overwrites=overwrites_admin)
 
-        # Create complaint channel (visible to all, but only admins can read/write)
         overwrites_complaint = {
             guild.default_role: discord.PermissionOverwrite(send_messages=False, view_channel=True),
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
@@ -74,7 +72,7 @@ class SetupChoiceView(discord.ui.View):
 
         complaint_channel = await guild.create_text_channel("complaints", overwrites=overwrites_complaint)
 
-        await self.cog.save_config(guild.id, admin_channel.id, complaint_channel.id)
+        await self.cog.save_config(guild.id, admin_channel.id, complaint_channel.id, interaction.user.id)
 
         await interaction.response.edit_message(
             content=f"✅ Setup complete!\n- Admin Channel: {admin_channel.mention}\n- Complaint Channel: {complaint_channel.mention}",
@@ -83,11 +81,76 @@ class SetupChoiceView(discord.ui.View):
 
     @discord.ui.button(label="Manual Setup", style=discord.ButtonStyle.secondary)
     async def manual_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(
-            "🔧 Please mention the admin and complaint channels or provide their IDs.",
-            ephemeral=True
+        await interaction.response.edit_message(
+            content="🔧 Please select the existing channels below.",
+            view=ManualChannelSelectionView(self.cog, interaction),
         )
 
-# In your main file
+
+class ManualChannelSelectionView(discord.ui.View):
+    def __init__(self, cog, interaction):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.interaction = interaction
+        self.selected_admin_channel = None
+        self.selected_complaint_channel = None
+
+        self.add_item(AdminChannelDropdown(self))
+        self.add_item(ComplaintChannelDropdown(self))
+        self.add_item(ConfirmButton(self))
+
+
+class AdminChannelDropdown(discord.ui.Select):
+    def __init__(self, view):
+        self.parent_view = view
+        options = [
+            discord.SelectOption(label=channel.name, value=str(channel.id))
+            for channel in view.interaction.guild.text_channels
+        ]
+        super().__init__(placeholder="Select Admin Channel", options=options, row=0)
+
+    async def callback(self, interaction: discord.Interaction):
+        self.parent_view.selected_admin_channel = int(self.values[0])
+        await interaction.response.send_message(f"✅ Admin channel set to <#{self.values[0]}>", ephemeral=True)
+
+
+class ComplaintChannelDropdown(discord.ui.Select):
+    def __init__(self, view):
+        self.parent_view = view
+        options = [
+            discord.SelectOption(label=channel.name, value=str(channel.id))
+            for channel in view.interaction.guild.text_channels
+        ]
+        super().__init__(placeholder="Select Complaint Channel", options=options, row=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        self.parent_view.selected_complaint_channel = int(self.values[0])
+        await interaction.response.send_message(f"✅ Complaint channel set to <#{self.values[0]}>", ephemeral=True)
+
+
+class ConfirmButton(discord.ui.Button):
+    def __init__(self, view):
+        super().__init__(label="Confirm Setup", style=discord.ButtonStyle.success)
+        self.parent_view = view
+
+    async def callback(self, interaction: discord.Interaction):
+        if not self.parent_view.selected_admin_channel or not self.parent_view.selected_complaint_channel:
+            await interaction.response.send_message("⚠️ Please select both channels before confirming.", ephemeral=True)
+            return
+
+        await self.parent_view.cog.save_config(
+            interaction.guild.id,
+            self.parent_view.selected_admin_channel,
+            self.parent_view.selected_complaint_channel,
+            interaction.user.id
+        )
+
+        await interaction.response.edit_message(
+            content=f"✅ Manual setup complete!\n- Admin Channel: <#{self.parent_view.selected_admin_channel}>\n- Complaint Channel: <#{self.parent_view.selected_complaint_channel}>",
+            view=None
+        )
+
+
+# In your main bot
 async def setup(bot):
     await bot.add_cog(Setup(bot))

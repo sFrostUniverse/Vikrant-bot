@@ -1,1 +1,8 @@
-{}
+{
+  "YOUR_GUILD_ID": {
+    "admin_channel_id": 1274614024608284684,
+    "trusted_admins": [],
+    "auto_punish": true,
+    "punishment_type": "ban"  
+  }
+}

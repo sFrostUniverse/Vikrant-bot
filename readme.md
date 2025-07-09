@@ -1,42 +1,84 @@
+
 # Vikrant Security Bot 🔐
 
-A powerful anti-nuke and moderation bot for Discord.
-
-## Features
-
-- `/setup` command to auto-create or manually configure:
-  - Admin channel (`#vikrant-admin`)
-  - Complaint channel (`#complaints`)
-
-- `/complain` command to submit anonymous complaints
-  - Complaints are sent directly to the configured complaint channel.
-  - Supports dynamic complaint channel lookup per server.
-
-- `/lockdown` & `/unlock` commands
-  - Lock all text channels in the server (`@everyone` cannot send messages)
-  - Unlock previously locked channels
-  - Useful during raids or server-wide emergencies
-
-## Setup
-
-1. Invite Vikrant with the [official invite link](https://discord.com/oauth2/authorize?client_id=1390545148139802735&permissions=8&scope=bot+applications.commands).
-
-2. Run `/setup` to initialize the admin and complaint channels.
-
-3. Use `/lockdown` and `/unlock` for emergency moderation control.
-
-4. Users can submit complaints using `/complain`.
-
-## Project Structure
-
-- `/cogs/setup.py` — Interactive setup command
-- `/cogs/complaints.py` — Complaint submission command
-- `/cogs/lockdown.py` — Lockdown and unlock all channels
-- `/data/config.json` — Stores per-server configuration
-
-## Deployment
-
-Currently hosted on Render for 24/7 uptime.
+A powerful, customizable **anti-nuke and moderation bot** designed to protect your Discord server from raids, mass destruction, and abuse — with real-time defense features and user-friendly setup.
 
 ---
 
+## ⚙️ Features
+
+### 🛡️ Anti-Nuke System
+- Real-time monitoring of:
+  - Mass bans
+  - Role deletions
+  - Channel deletions
+- Auto-punishes attackers based on your config:
+  - `ban`, `kick`, or `strip roles`
+- Trust system to exempt selected admins
+
+### 🔧 `/setup`
+- One command to initialize:
+  - Admin channel (`#vikrant-admin`) for security alerts
+  - Complaint channel (`#complaints`) for user reports
+- Supports **auto-create** or **manual selection** of existing channels
+- Saves configuration into `config.json` per server:
+  - `trusted_admins`, `auto_punish`, `punishment_type`, etc.
+
+### 📩 `/complain`
+- Anonymous complaint system
+- Messages are routed to the configured complaint channel
+- Keeps users safe from retaliation
+
+### 🚨 `/lockdown` & `/unlock`
+- Lock all text channels to prevent messages from @everyone
+- Restore normal access after the threat is gone
+- Effective during raids or emergencies
+
+---
+
+## 🧩 Project Structure
+
+```
+vikrant/
+├── cogs/
+│   ├── setup.py              # Interactive setup command
+│   ├── complaints.py         # Anonymous complaint submission
+│   ├── lockdown.py           # Lockdown/unlock commands
+│   └── audit_log_watcher.py  # Anti-nuke protection core
+├── data/
+│   └── config.json           # Per-server configuration store
+├── main.py                   # Bot startup and cog loading
+└── readme.md
+```
+
+---
+
+## 🚀 Setup Instructions
+
+1. **Invite Vikrant** using [this link](https://discord.com/oauth2/authorize?client_id=1390545148139802735&permissions=8&scope=bot+applications.commands)
+
+2. Run `/setup` to configure channels and protection settings
+
+3. Use:
+   - `/complain` to allow anonymous complaints
+   - `/lockdown` and `/unlock` for emergency control
+
+4. Customize your config in `data/config.json` (if needed)
+
+---
+
+## 🌐 Hosting
+
+Vikrant is currently hosted on **Render.com** for 24/7 uptime.  
+You may self-host or fork as needed — just ensure your bot token and permissions are secure.
+
+---
+
+## 💬 Support & Contributions
+
+Want to contribute, report bugs, or suggest features?  
+Reach out to the creator Sehaj or fork the repo!
+
+---
+
+*Built with ❤️ to protect Discord communities from harm.*
