@@ -1,63 +1,93 @@
 import discord
 from discord.ext import commands
-from discord import app_commands, Interaction, ui
+from discord import app_commands
 import json, os
 
 CONFIG_FILE = "data/config.json"
 
-class ConfirmView(ui.View):
-    def __init__(self, author: discord.User):
-        super().__init__(timeout=60)
-        self.author = author
-        self.value = None
-
-    @ui.button(label="I Agree", style=discord.ButtonStyle.danger)
-    async def agree(self, interaction: Interaction, button: ui.Button):
-        if interaction.user.id != self.author.id:
-            await interaction.response.send_message("Only the server owner can confirm this!", ephemeral=True)
-            return
-        self.value = True
-        await interaction.response.edit_message(content="✅ Setup confirmed! Proceeding with configuration...", view=None)
-        self.stop()
-
 class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def save_config(self, guild_id, admin_channel_id, complaint_channel_id):
         if not os.path.exists(CONFIG_FILE):
-            os.makedirs("data", exist_ok=True)
             with open(CONFIG_FILE, "w") as f:
                 json.dump({}, f)
 
-    def save_config(self, guild_id, owner_id):
         with open(CONFIG_FILE, "r") as f:
-            config = json.load(f)
-        config[str(guild_id)] = {"owner_id": owner_id, "setup_done": True}
+            data = json.load(f)
+
+        data[str(guild_id)] = {
+            "admin_channel_id": admin_channel_id,
+            "complaint_channel_id": complaint_channel_id
+        }
+
         with open(CONFIG_FILE, "w") as f:
-            json.dump(config, f, indent=4)
+            json.dump(data, f, indent=4)
 
-    @app_commands.command(name="setup", description="Configure Vikrant in your server")
-    async def setup(self, interaction: Interaction):
-        if interaction.user.id != interaction.guild.owner_id:
-            return await interaction.response.send_message("Only the **server owner** can run this command!", ephemeral=True)
-
-        # Check for admin permissions
+    @app_commands.command(name="setup", description="Initial server setup for Vikrant Security Bot")
+    async def setup(self, interaction: discord.Interaction):
         if not interaction.user.guild_permissions.administrator:
-            view = ConfirmView(interaction.user)
-            await interaction.response.send_message(
-                "**🚨 Potential risks with current setup**\n"
-                "Administrator permissions were not provided to **Vikrant**!\n"
-                "Without admin permissions, Vikrant may not be able to fully protect the server.\n\n"
-                "⚠️ If you understand the risks and would like to proceed, click **'I Agree'**.",
-                view=view,
-                ephemeral=True
-            )
-            await view.wait()
-            if not view.value:
-                return  # Do nothing if the user didn't click
+            await interaction.response.send_message("❌ You must be an administrator to run setup.", ephemeral=True)
+            return
 
-        # Save config
-        self.save_config(interaction.guild_id, interaction.user.id)
-        await interaction.followup.send(f"✅ Setup complete, <@{interaction.user.id}>!", ephemeral=True)
+        # Check existing channels
+        admin_channel = discord.utils.get(interaction.guild.text_channels, name="vikrant-admin")
+        complaint_channel = discord.utils.get(interaction.guild.text_channels, name="complaints")
 
+        view = SetupChoiceView(self, interaction)
+        await interaction.response.send_message(
+            "**🔧 Setup Vikrant:**\nWould you like me to auto-create admin and complaint channels or configure manually?",
+            view=view,
+            ephemeral=True
+        )
+
+class SetupChoiceView(discord.ui.View):
+    def __init__(self, cog, interaction):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.interaction = interaction
+
+    @discord.ui.button(label="Auto Create", style=discord.ButtonStyle.success)
+    async def auto_create(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+
+        # Create admin channel (private to admins)
+        overwrites_admin = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            guild.me: discord.PermissionOverwrite(view_channel=True)
+        }
+        for role in guild.roles:
+            if role.permissions.administrator:
+                overwrites_admin[role] = discord.PermissionOverwrite(view_channel=True)
+
+        admin_channel = await guild.create_text_channel("vikrant-admin", overwrites=overwrites_admin)
+
+        # Create complaint channel (visible to all, but only admins can read/write)
+        overwrites_complaint = {
+            guild.default_role: discord.PermissionOverwrite(send_messages=False, view_channel=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
+        for role in guild.roles:
+            if role.permissions.administrator:
+                overwrites_complaint[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+
+        complaint_channel = await guild.create_text_channel("complaints", overwrites=overwrites_complaint)
+
+        await self.cog.save_config(guild.id, admin_channel.id, complaint_channel.id)
+
+        await interaction.response.edit_message(
+            content=f"✅ Setup complete!\n- Admin Channel: {admin_channel.mention}\n- Complaint Channel: {complaint_channel.mention}",
+            view=None
+        )
+
+    @discord.ui.button(label="Manual Setup", style=discord.ButtonStyle.secondary)
+    async def manual_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message(
+            "🔧 Please mention the admin and complaint channels or provide their IDs.",
+            ephemeral=True
+        )
+
+# In your main file
 async def setup(bot):
     await bot.add_cog(Setup(bot))
