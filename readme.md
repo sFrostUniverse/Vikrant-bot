@@ -1,95 +1,70 @@
+# 🛡️ INS Vikrant – Discord Server Defense Unit
 
-# Vikrant Security Bot 🔐
+> **Precision Protection • Trusted Automation • Unyielding Security**
 
-A powerful, customizable **anti-nuke and moderation bot** designed to protect your Discord server from raids, mass destruction, link spam, and abuse — with real-time defense and a friendly setup flow.
-
----
-
-## ⚙️ Features
-
-### 🛡️ Anti-Nuke System
-- Real-time monitoring of destructive actions:
-  - 🚫 Mass bans
-  - 🧨 Role deletions
-  - 📁 Channel deletions
-- Auto-punishes attackers using your chosen method:
-  - `ban`, `kick`, or `remove roles`
-- Trust system: whitelist selected admins from protection triggers
-
-### 🔧 `/setup`
-- One interactive command to configure the bot
-- Options to:
-  - **Auto-create** admin + complaint channels
-  - **Manually select** existing ones
-- Saves all settings to `config.json`:
-  - `admin_log_channel`, `complaint_channel`, `trusted_admins`, `auto_punish`, and more
-
-### 🔗 Link Spam Protection
-- Detects users posting suspicious links across multiple channels
-- Instantly **kicks** the user to prevent mass scams
-- Logs the action in the admin channel
-
-### 📩 `/complain`
-- Submit anonymous complaints
-- Delivered directly to your configured complaint channel
-- Ensures safety and privacy for your community
-
-### 🚨 `/lockdown` & `/unlock`
-- Instantly locks all text channels for @everyone
-- Useful during raids, floods, or emergencies
-- `/unlock` restores normal access
-
-
-
-## 🧩 Project Structure
-
-```
-vikrant/
-├── cogs/
-│   ├── setup.py              # Interactive setup command
-│   ├── complaints.py         # Anonymous complaint submission
-│   ├── lockdown.py           # Lockdown/unlock commands
-│   └── audit_log_watcher.py  # Anti-nuke protection core
-├── data/
-│   └── config.json           # Per-server configuration store
-├── main.py                   # Bot startup and cog loading
-└── readme.md
-```
+INS Vikrant is a powerful **Discord security bot** designed to protect your server from nukes, raids, link spam, and admin abuse with smart automation and a clean interactive setup system.
 
 ---
 
-## 🚀 How to Use
+## ⚙️ Key Features
 
-1. **Invite Vikrant** to your server  
-   [Click here to invite](https://discord.com/oauth2/authorize?client_id=1390545148139802735&permissions=8&scope=bot+applications.commands)
-
-2. Run `/setup`  
-   - Configure your admin and complaint channels
-
-3. Features available after setup:
-   - `/complain` for anonymous reporting
-   - `/lockdown` and `/unlock` for emergency control
-   - Automatic anti-nuke protection
-   - Link spam detection
-
-4. (Optional) Customize your config in `data/config.json`
+- 🛡️ **Anti-Nuke System** — Stops mass bans, deletions, or takeovers in real-time  
+- 🧠 **Trusted Admins** — Allow only selected admins to bypass punishments  
+- 🛰 **Auto-Punish** — Automatically bans or kicks users based on violation patterns  
+- 📢 **Anonymous Complaint System** — Safe way for users to report issues  
+- 🔐 **Lockdown & Panic Mode** — Instantly secure the entire server  
+- 📡 **Link Spam Detection** — Detects bots and hacked accounts spreading malicious links  
+- ⚓ **24/7 Server Protection** — Light, fast, always watching  
 
 ---
 
-## 🌐 Hosting & Deployment
+## 📜 Slash Commands
 
-- Hosted via **Render.com** for 24/7 uptime  
-- Self-hosting is supported — just install dependencies, load your `.env` and run `main.py`
+| Command | Description |
+|--------|-------------|
+| `/setup` | Begin interactive setup (auto/manual) |
+| `/trust @user` | Add a trusted admin |
+| `/untrust @user` | Remove a trusted admin |
+| `/config` | View current protection settings |
+| `/panic` | Emergency lockdown |
+| `/lockdown` | Lock all channels |
+| `/unlock` | Unlock all channels |
+| `/complain` | Submit an anonymous complaint |
+| `/help` | Show help and command guide |
 
 ---
 
-## 💬 Support & Contributions
+## 🧪 Setup Instructions
 
-Want to contribute or suggest features?  
-Reach out to the creator — **she/her**, aka the builder of this bot, or fork the repository on GitHub.
+1. Clone the repo  
+   ```bash
+   git clone https://github.com/sFrostUniverse/Vikrant-bot
+   cd Vikrant-bot
+   ```
 
-> GitHub: [https://github.com/sFrostUniverse/Vikrant-bot](https://github.com/sFrostUniverse/Vikrant-bot)
+2. Install dependencies  
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Create a `.env` file and add your token:  
+   ```env
+   DISCORD_TOKEN=your_bot_token_here
+   ```
+
+4. Run the bot  
+   ```bash
+   python main.py
+   ```
 
 ---
 
-*Built with 💙 to defend Discord communities from harm — safely, professionally, and stylishly.*
+## 👁 Image Preview
+
+> ![Vikrant Bot](INS_Vikrant_(R11)_and_INS_Vikramaditya_(R33)_during_joint_exercise_(cropped).jpg)
+
+---
+
+## 🌐 GitHub Repo  
+**[Vikrant Bot on GitHub](https://github.com/sFrostUniverse/Vikrant-bot)**  
+Built by **sFrostUniverse** • ⚓ Discipline. Power. Control.

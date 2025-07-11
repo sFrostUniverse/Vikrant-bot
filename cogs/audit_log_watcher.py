@@ -44,7 +44,6 @@ class AuditWatcher(commands.Cog):
                 return
 
             await self.log_action(guild, f"🔴 **{entry.user}** deleted channel **#{channel.name}**")
-            # Later: punish logic
 
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role):

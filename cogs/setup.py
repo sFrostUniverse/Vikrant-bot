@@ -18,7 +18,7 @@ class Setup(commands.Cog):
             data = json.load(f)
 
         data[str(guild_id)] = {
-            "admin_log_channel": admin_channel_id,  # ✅ updated key
+            "admin_log_channel": admin_channel_id,
             "complaint_channel_id": complaint_channel_id,
             "trusted_admins": [trusted_admin_id],
             "auto_punish": True,
@@ -27,6 +27,24 @@ class Setup(commands.Cog):
 
         with open(CONFIG_FILE, "w") as f:
             json.dump(data, f, indent=4)
+
+        guild = self.bot.get_guild(guild_id)
+        channel = guild.get_channel(admin_channel_id)
+        member = guild.get_member(trusted_admin_id)
+
+        if channel and member:
+            embed = discord.Embed(
+                title="🛡️ Trusted Admin Assigned",
+                description=f"{member.mention} has been assigned as a **Trusted Admin** during setup.",
+                color=discord.Color.green()
+            )
+            embed.add_field(
+                name="Role Summary",
+                value="Trusted Admins can bypass anti-nuke punishments and help manage server security.",
+                inline=False
+            )
+            embed.set_footer(text="Vikrant • Auto-Security Setup")
+            await channel.send(embed=embed)
 
     @app_commands.command(name="setup", description="Initial server setup for Vikrant Security Bot")
     async def setup(self, interaction: discord.Interaction):
@@ -145,6 +163,5 @@ class ConfirmButton(discord.ui.Button):
             view=None
         )
 
-# Load cog in your main bot file
 async def setup(bot):
     await bot.add_cog(Setup(bot))

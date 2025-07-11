@@ -31,7 +31,7 @@ class ComplaintModal(discord.ui.Modal, title="📢 Submit a Complaint"):
                 description=self.complaint.value,
                 color=discord.Color.orange()
             )
-            embed.set_footer(text=f"Submitted anonymously by {interaction.user.display_name}")
+            embed.set_footer(text="🔒 Sent via Vikrant Security Bot")
             await channel.send(embed=embed)
             await interaction.response.send_message(
                 "✅ Your complaint has been submitted anonymously.",
@@ -48,8 +48,17 @@ class Complaints(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="complain", description="Submit an anonymous complaint")
+    @app_commands.checks.cooldown(1, 60.0)
     async def complain(self, interaction: discord.Interaction):
         await interaction.response.send_modal(ComplaintModal())
+
+    @complain.error
+    async def complain_error(self, interaction: discord.Interaction, error):
+        if isinstance(error, app_commands.errors.CommandOnCooldown):
+            await interaction.response.send_message(
+                f"⏳ You can submit another complaint in {int(error.retry_after)} seconds.",
+                ephemeral=True
+            )
 
 async def setup(bot):
     await bot.add_cog(Complaints(bot))

@@ -13,9 +13,8 @@ def load_config():
 class LinkSpamProtection(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.recent_links = {}  # {user_id: [{"url": str, "channel": int, "time": float}]}
+        self.recent_links = {}
 
-    # Regex to catch links
     LINK_REGEX = r"(https?://[^\s]+)"
 
     @commands.Cog.listener()
@@ -37,7 +36,6 @@ class LinkSpamProtection(commands.Cog):
         user_id = message.author.id
         now = time.time()
 
-        # Track messages with URLs
         for url in urls:
             if user_id not in self.recent_links:
                 self.recent_links[user_id] = []
@@ -47,16 +45,13 @@ class LinkSpamProtection(commands.Cog):
                 "time": now
             })
 
-            # Remove entries older than 20 seconds
             self.recent_links[user_id] = [
                 entry for entry in self.recent_links[user_id]
                 if now - entry["time"] <= 20
             ]
 
-            # Check for spam pattern: same link in 3+ channels
             channels = {entry["channel"] for entry in self.recent_links[user_id] if entry["url"] == url}
             if len(channels) >= 3:
-                # Kick the user
                 try:
                     await message.guild.kick(message.author, reason="Link spamming detected by Vikrant")
                     if log_channel_id:
@@ -76,7 +71,6 @@ class LinkSpamProtection(commands.Cog):
                 except Exception as e:
                     print(f"Error kicking user: {e}")
 
-                # Clear recent link data after kick
                 self.recent_links.pop(user_id, None)
                 break
 

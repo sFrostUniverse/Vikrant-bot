@@ -2,12 +2,10 @@ import discord
 from discord.ext import commands
 from discord import app_commands, Interaction
 
-
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # Only allow members with the "Ban Members" permission to use this command
     @app_commands.command(name="ban", description="Ban a member from the server")
     @app_commands.checks.has_permissions(ban_members=True)
     async def ban(self, interaction: Interaction, member: discord.Member, reason: str = "No reason provided"):
@@ -29,8 +27,6 @@ class Moderation(commands.Cog):
     @app_commands.checks.has_permissions(ban_members=True)
     async def unban(self, interaction: Interaction, user: str):
         banned_users = await interaction.guild.bans()
-
-        # Try matching by username#discriminator or ID
         user_obj = None
         for ban_entry in banned_users:
             banned_user = ban_entry.user
@@ -45,7 +41,6 @@ class Moderation(commands.Cog):
         await interaction.guild.unban(user_obj)
         await interaction.response.send_message(f"✅ Unbanned {user_obj.name}#{user_obj.discriminator}", ephemeral=True)
 
-    # Error handler for missing permissions
     @ban.error
     async def ban_error(self, interaction: Interaction, error):
         if isinstance(error, app_commands.errors.MissingPermissions):
@@ -56,7 +51,6 @@ class Moderation(commands.Cog):
             await interaction.response.send_message(
                 f"⚠️ An unexpected error occurred: {error}", ephemeral=True
             )
-
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
