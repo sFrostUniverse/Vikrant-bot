@@ -1,40 +1,45 @@
 
 # Vikrant Security Bot 🔐
 
-A powerful, customizable **anti-nuke and moderation bot** designed to protect your Discord server from raids, mass destruction, and abuse — with real-time defense features and user-friendly setup.
+A powerful, customizable **anti-nuke and moderation bot** designed to protect your Discord server from raids, mass destruction, link spam, and abuse — with real-time defense and a friendly setup flow.
 
 ---
 
 ## ⚙️ Features
 
 ### 🛡️ Anti-Nuke System
-- Real-time monitoring of:
-  - Mass bans
-  - Role deletions
-  - Channel deletions
-- Auto-punishes attackers based on your config:
-  - `ban`, `kick`, or `strip roles`
-- Trust system to exempt selected admins
+- Real-time monitoring of destructive actions:
+  - 🚫 Mass bans
+  - 🧨 Role deletions
+  - 📁 Channel deletions
+- Auto-punishes attackers using your chosen method:
+  - `ban`, `kick`, or `remove roles`
+- Trust system: whitelist selected admins from protection triggers
 
 ### 🔧 `/setup`
-- One command to initialize:
-  - Admin channel (`#vikrant-admin`) for security alerts
-  - Complaint channel (`#complaints`) for user reports
-- Supports **auto-create** or **manual selection** of existing channels
-- Saves configuration into `config.json` per server:
-  - `trusted_admins`, `auto_punish`, `punishment_type`, etc.
+- One interactive command to configure the bot
+- Options to:
+  - **Auto-create** admin + complaint channels
+  - **Manually select** existing ones
+- Saves all settings to `config.json`:
+  - `admin_log_channel`, `complaint_channel`, `trusted_admins`, `auto_punish`, and more
+
+### 🔗 Link Spam Protection
+- Detects users posting suspicious links across multiple channels
+- Instantly **kicks** the user to prevent mass scams
+- Logs the action in the admin channel
 
 ### 📩 `/complain`
-- Anonymous complaint system
-- Messages are routed to the configured complaint channel
-- Keeps users safe from retaliation
+- Submit anonymous complaints
+- Delivered directly to your configured complaint channel
+- Ensures safety and privacy for your community
 
 ### 🚨 `/lockdown` & `/unlock`
-- Lock all text channels to prevent messages from @everyone
-- Restore normal access after the threat is gone
-- Effective during raids or emergencies
+- Instantly locks all text channels for @everyone
+- Useful during raids, floods, or emergencies
+- `/unlock` restores normal access
 
----
+
 
 ## 🧩 Project Structure
 
@@ -53,32 +58,38 @@ vikrant/
 
 ---
 
-## 🚀 Setup Instructions
+## 🚀 How to Use
 
-1. **Invite Vikrant** using [this link](https://discord.com/oauth2/authorize?client_id=1390545148139802735&permissions=8&scope=bot+applications.commands)
+1. **Invite Vikrant** to your server  
+   [Click here to invite](https://discord.com/oauth2/authorize?client_id=1390545148139802735&permissions=8&scope=bot+applications.commands)
 
-2. Run `/setup` to configure channels and protection settings
+2. Run `/setup`  
+   - Configure your admin and complaint channels
 
-3. Use:
-   - `/complain` to allow anonymous complaints
+3. Features available after setup:
+   - `/complain` for anonymous reporting
    - `/lockdown` and `/unlock` for emergency control
+   - Automatic anti-nuke protection
+   - Link spam detection
 
-4. Customize your config in `data/config.json` (if needed)
+4. (Optional) Customize your config in `data/config.json`
 
 ---
 
-## 🌐 Hosting
+## 🌐 Hosting & Deployment
 
-Vikrant is currently hosted on **Render.com** for 24/7 uptime.  
-You may self-host or fork as needed — just ensure your bot token and permissions are secure.
+- Hosted via **Render.com** for 24/7 uptime  
+- Self-hosting is supported — just install dependencies, load your `.env` and run `main.py`
 
 ---
 
 ## 💬 Support & Contributions
 
-Want to contribute, report bugs, or suggest features?  
-Reach out to the creator Sehaj or fork the repo!
+Want to contribute or suggest features?  
+Reach out to the creator — **she/her**, aka the builder of this bot, or fork the repository on GitHub.
+
+> GitHub: [https://github.com/sFrostUniverse/Vikrant-bot](https://github.com/sFrostUniverse/Vikrant-bot)
 
 ---
 
-*Built with ❤️ to protect Discord communities from harm.*
+*Built with 💙 to defend Discord communities from harm — safely, professionally, and stylishly.*

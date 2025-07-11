@@ -18,7 +18,7 @@ class Setup(commands.Cog):
             data = json.load(f)
 
         data[str(guild_id)] = {
-            "admin_channel_id": admin_channel_id,
+            "admin_log_channel": admin_channel_id,  # ✅ updated key
             "complaint_channel_id": complaint_channel_id,
             "trusted_admins": [trusted_admin_id],
             "auto_punish": True,
@@ -40,7 +40,6 @@ class Setup(commands.Cog):
             view=view,
             ephemeral=True
         )
-
 
 class SetupChoiceView(discord.ui.View):
     def __init__(self, cog, interaction):
@@ -86,7 +85,6 @@ class SetupChoiceView(discord.ui.View):
             view=ManualChannelSelectionView(self.cog, interaction),
         )
 
-
 class ManualChannelSelectionView(discord.ui.View):
     def __init__(self, cog, interaction):
         super().__init__(timeout=60)
@@ -98,7 +96,6 @@ class ManualChannelSelectionView(discord.ui.View):
         self.add_item(AdminChannelDropdown(self))
         self.add_item(ComplaintChannelDropdown(self))
         self.add_item(ConfirmButton(self))
-
 
 class AdminChannelDropdown(discord.ui.Select):
     def __init__(self, view):
@@ -113,7 +110,6 @@ class AdminChannelDropdown(discord.ui.Select):
         self.parent_view.selected_admin_channel = int(self.values[0])
         await interaction.response.send_message(f"✅ Admin channel set to <#{self.values[0]}>", ephemeral=True)
 
-
 class ComplaintChannelDropdown(discord.ui.Select):
     def __init__(self, view):
         self.parent_view = view
@@ -126,7 +122,6 @@ class ComplaintChannelDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         self.parent_view.selected_complaint_channel = int(self.values[0])
         await interaction.response.send_message(f"✅ Complaint channel set to <#{self.values[0]}>", ephemeral=True)
-
 
 class ConfirmButton(discord.ui.Button):
     def __init__(self, view):
@@ -150,7 +145,6 @@ class ConfirmButton(discord.ui.Button):
             view=None
         )
 
-
-# In your main bot
+# Load cog in your main bot file
 async def setup(bot):
     await bot.add_cog(Setup(bot))
