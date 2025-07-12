@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import app_commands, Interaction, ui
 
 GITHUB_URL = "https://github.com/sFrostUniverse/Vikrant-bot"
-IMAGE_URL = "attachment://INS_Vikrant.jpg"  # Refers to the attached file
+IMAGE_URL = "attachment://INS_Vikrant.jpg"
 
 class CommandsModal(ui.Modal, title="📜 Vikrant Command Deck"):
     commands_text = ui.TextInput(
@@ -47,7 +47,7 @@ class Help(commands.Cog):
     @app_commands.command(name="help", description="Access Vikrant's command and protection systems.")
     async def help(self, interaction: Interaction):
         embed = discord.Embed(
-            title="🛡️ INS Vikrant – Server Defense Command",
+            title="⚓ Vikrant – Server Defense Command",
             description=(
                 "**Mission:** Safeguard your Discord server from nukes, raids, link spam, and rogue admins.\n\n"
                 "🧭 Use `/setup` to deploy Vikrant's protective systems.\n"
@@ -68,10 +68,10 @@ class Help(commands.Cog):
             value="*“Peace Through Preparedness. Protection Without Fail.”*",
             inline=False
         )
-        embed.set_footer(text="Vikrant | Indian Navy Inspired Defense AI", icon_url="https://em-content.zobj.net/thumbs/120/apple/354/anchor_2693.png")
+        embed.set_footer(text="Vikrant | Indian Navy Inspired Defense", icon_url="https://em-content.zobj.net/thumbs/120/apple/354/anchor_2693.png")
         embed.set_image(url=IMAGE_URL)
 
-        file = discord.File("INS_Vikrant_(R11)_and_INS_Vikramaditya_(R33)_during_joint_exercise_(cropped).jpg", filename="INS_Vikrant.jpg")
+        file = discord.File("assets/vikrant_banner.jpg", filename="INS_Vikrant.jpg")
 
         await interaction.response.send_message(embed=embed, view=HelpView(), ephemeral=True, files=[file])
 
