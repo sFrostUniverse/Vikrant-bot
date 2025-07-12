@@ -1,0 +1,152 @@
+[2025-07-12 08:09:35,530] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:09:35,531] [INFO] logging in using static token
+[2025-07-12 08:09:35,541] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:09:35,541] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:09:37,501] [INFO] Shard ID None has connected to Gateway (Session ID: 261ca12f87168173544030b07f689b59).
+[2025-07-12 08:09:39,925] [INFO] Auto-fetching news...
+[2025-07-12 08:16:48,436] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:16:48,437] [INFO] logging in using static token
+[2025-07-12 08:16:48,447] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:16:48,447] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:16:50,283] [INFO] Shard ID None has connected to Gateway (Session ID: c9630274939f0ce9ff201d8d9b2b74ff).
+[2025-07-12 08:16:52,601] [INFO] Auto-fetching news...
+[2025-07-12 08:19:05,646] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:19:05,646] [INFO] logging in using static token
+[2025-07-12 08:19:05,657] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:19:05,657] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:19:07,492] [INFO] Shard ID None has connected to Gateway (Session ID: a0f00399084cbf1dbc823891ca18a871).
+[2025-07-12 08:19:09,789] [INFO] Auto-fetching news...
+[2025-07-12 08:19:11,775] [ERROR] Unhandled exception in internal background task 'fetch_news'.
+Traceback (most recent call last):
+  File "C:\Users\sehaj\AppData\Local\Programs\Python\Python313\Lib\site-packages\discord\ext\tasks\__init__.py", line 246, in _loop
+    await self.coro(*args, **kwargs)
+  File "c:\Users\sehaj\OneDrive\Desktop\FrostNews\cogs\news.py", line 74, in fetch_news
+    channel_id = int(guild_data["news_channel"])
+ValueError: invalid literal for int() with base 10: 'channel_id'
+[2025-07-12 08:28:46,130] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:28:46,131] [INFO] logging in using static token
+[2025-07-12 08:28:46,140] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:28:46,141] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:28:47,875] [INFO] Shard ID None has connected to Gateway (Session ID: 4ef6af410b08dc77b6ec1c89c2cdd1c6).
+[2025-07-12 08:28:50,211] [INFO] Auto-fetching news...
+[2025-07-12 08:28:51,601] [ERROR] Unhandled exception in internal background task 'fetch_news'.
+Traceback (most recent call last):
+  File "C:\Users\sehaj\AppData\Local\Programs\Python\Python313\Lib\site-packages\discord\ext\tasks\__init__.py", line 246, in _loop
+    await self.coro(*args, **kwargs)
+  File "c:\Users\sehaj\OneDrive\Desktop\FrostNews\cogs\news.py", line 74, in fetch_news
+    channel_id = int(guild_data["news_channel"])
+ValueError: invalid literal for int() with base 10: 'channel_id'
+[2025-07-12 08:30:11,654] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:30:11,654] [INFO] logging in using static token
+[2025-07-12 08:30:11,664] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:30:11,664] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:30:13,537] [INFO] Shard ID None has connected to Gateway (Session ID: 65867e887fc39f2222e33f152214def2).
+[2025-07-12 08:30:15,844] [INFO] Auto-fetching news...
+[2025-07-12 08:30:17,731] [INFO] News sent to beastboy00k0146's server (general)
+[2025-07-12 08:45:15,854] [INFO] Auto-fetching news...
+[2025-07-12 08:45:18,403] [INFO] News sent to beastboy00k0146's server (general)
+[2025-07-12 08:48:21,830] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:48:21,831] [INFO] logging in using static token
+[2025-07-12 08:48:21,841] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:48:21,841] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:48:23,828] [INFO] Shard ID None has connected to Gateway (Session ID: c6f2634a907b8692e106c2d567d607cf).
+[2025-07-12 08:48:26,143] [INFO] Auto-fetching priority news...
+[2025-07-12 08:54:39,772] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:54:39,773] [INFO] logging in using static token
+[2025-07-12 08:54:39,783] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:54:39,783] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:54:41,614] [INFO] Shard ID None has connected to Gateway (Session ID: 39373b461daf910ce18080cdba3b4fb2).
+[2025-07-12 08:54:43,997] [INFO] Auto-fetching Indian Express headlines...
+[2025-07-12 08:56:40,103] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:56:40,104] [INFO] logging in using static token
+[2025-07-12 08:56:40,115] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:56:40,116] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:56:42,138] [INFO] Shard ID None has connected to Gateway (Session ID: 71bedbc56fc95fc13a7c8607a9d2c55b).
+[2025-07-12 08:56:44,514] [INFO] Auto-fetching Indian Express headlines...
+[2025-07-12 08:56:46,752] [INFO] News sent to beastboy00k0146's server (general)
+[2025-07-12 08:58:57,445] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 08:58:57,446] [INFO] logging in using static token
+[2025-07-12 08:58:57,455] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 08:58:57,455] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 08:58:59,868] [INFO] Shard ID None has connected to Gateway (Session ID: 07d3d5d4de70e7e2c8271faa0624f573).
+[2025-07-12 08:59:02,246] [INFO] Auto-fetching Indian news headlines...
+[2025-07-12 08:59:03,000] [INFO] News sent to beastboy00k0146's server (general)
+[2025-07-12 19:31:01,311] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 19:31:01,312] [INFO] logging in using static token
+[2025-07-12 19:31:01,360] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 19:31:01,361] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 19:31:03,063] [INFO] Shard ID None has connected to Gateway (Session ID: 20e3a9c90f95924b3916c4d6fcc86dc5).
+[2025-07-12 19:31:05,447] [INFO] Auto-fetching news...
+[2025-07-12 19:31:05,819] [WARNING] NewsAPI error: Your API key is invalid or incorrect. Check your key, or go to https://newsapi.org to create a free API key.
+[2025-07-12 19:31:21,401] [WARNING] NewsAPI error: Your API key is invalid or incorrect. Check your key, or go to https://newsapi.org to create a free API key.
+[2025-07-12 19:33:07,468] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 19:33:07,468] [INFO] logging in using static token
+[2025-07-12 19:33:07,478] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 19:33:07,478] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 19:33:09,240] [INFO] Shard ID None has connected to Gateway (Session ID: 46a0a6655340eba787843e531ea3e1b0).
+[2025-07-12 19:33:11,616] [INFO] Auto-fetching headlines...
+[2025-07-12 19:33:11,856] [WARNING] No headlines to send.
+[2025-07-12 19:34:59,342] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 19:34:59,342] [INFO] logging in using static token
+[2025-07-12 19:34:59,353] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 19:34:59,353] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 19:35:01,260] [INFO] Shard ID None has connected to Gateway (Session ID: 46bc051ab629786a8b7216cddf850a96).
+[2025-07-12 19:35:03,635] [INFO] Auto-fetching headlines...
+[2025-07-12 19:35:04,900] [INFO] Headlines sent to beastboy00k0146's server (general)
+[2025-07-12 19:36:39,944] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 19:36:39,944] [INFO] logging in using static token
+[2025-07-12 19:36:39,954] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 19:36:39,954] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 19:36:41,906] [INFO] Shard ID None has connected to Gateway (Session ID: f65d1e3ede31f40a152427987577f423).
+[2025-07-12 19:36:44,271] [INFO] Auto-fetching headlines...
+[2025-07-12 19:36:45,812] [INFO] Headlines sent to beastboy00k0146's server (general)
+[2025-07-12 19:40:24,262] [WARNING] Privileged message content intent is missing, commands may not work as expected.
+[2025-07-12 19:40:24,262] [INFO] logging in using static token
+[2025-07-12 19:40:24,272] [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.0.101:8080
+[2025-07-12 19:40:24,272] [INFO] [33mPress CTRL+C to quit[0m
+[2025-07-12 19:40:26,114] [INFO] Shard ID None has connected to Gateway (Session ID: 7b1cbd54c5f1fb3cf5bff1788046a550).
+[2025-07-12 19:40:28,468] [INFO] Auto-fetching headlines...
+[2025-07-12 19:40:28,763] [ERROR] [NDTV] Failed: 403 Client Error: Forbidden for url: https://www.ndtv.com/latest
+[2025-07-12 19:40:29,673] [INFO] Headlines sent to beastboy00k0146's server (general)
