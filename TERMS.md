@@ -1,48 +1,38 @@
-# Terms of Service & Privacy Policy
+# 🛠️ Discord Developer Team — Frost Universe
 
-_Last updated: July 2025_
+This project is developed and maintained by the official Discord developer team:
 
----
+### 👥 Team Name
+**Frost Universe**
 
-## 📜 Terms of Service
+### 🧊 Team Owner / Lead Developer
+**@frost** (Sehaj)
 
-By using the Vikrant Security Bot ("the Bot"), you agree to the following:
-
-- You will not misuse, clone, or redistribute the Bot.
-- You understand that the Bot is provided "as is" with no guarantees of uptime, performance, or results.
-- You agree to respect the Bot's developer, Frost Universe, and not impersonate or falsely claim authorship of the Bot.
-
-Frost Universe reserves the right to modify or discontinue the Bot's functionality at any time.
-
----
-
-## 🔐 Privacy Policy
-
-The Vikrant Bot collects **only minimal server data** required to function properly. This includes:
-
-- Server ID
-- Channel and role IDs
-- Configuration toggles (e.g., auto-punish, trusted admins, log channels)
-
-**What is NOT collected:**
-- No message content
-- No personal user data
-- No DMs, usernames, or emails
-
-Your data is:
-- Stored only for server functionality
-- Never shared, sold, or used for marketing
+### 📌 Purpose
+Frost Universe builds powerful and secure Discord bots focused on:
+- Server protection (anti-nuke, logging, setup systems)
+- Live integrations (news feeds, Twitch tools)
+- Automation and moderation utilities
 
 ---
 
-## 🧩 Data Removal
+## 🤖 Official Bots Under This Team
 
-If you'd like to remove your server's data:
-- Use the command `/reset` *(if implemented)*  
-- Or contact the developer directly:
-  > **Discord**: Sehaj#0001  
-  > **GitHub**: [github.com/sFrostUniverse](https://github.com/sFrostUniverse)
+| Bot Name        | Purpose                            | Status     |
+|----------------|-------------------------------------|------------|
+| **Vikrant**     | Real-time anti-nuke & security bot | Public     |
+| **FN 24**       | Indian News Feed with Images       | Public     |
+| **Sharan**      | Twitch & custom bot (private use)  | Private    |
 
 ---
 
-© 2025 Frost Universe. All Rights Reserved.
+## 🔗 Official Links
+
+- **Discord Tag**: `@frost`
+- **GitHub**: [sFrostUniverse](https://github.com/sFrostUniverse)
+- **Team Invite (Dev Portal)**: *[Shown only to bot owners]*  
+- **Contact**: For questions or partnership, message `@frost` on Discord.
+
+---
+
+© 2025 Frost Universe • Built with ❄️ and 💙
