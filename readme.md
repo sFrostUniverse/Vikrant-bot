@@ -34,16 +34,27 @@ Vikrant is a powerful, navy-themed security and moderation bot built to protect 
 
 ---
 
+## 📑 Legal & Ownership
+
+- This bot is developed and maintained by **Frost Universe** (Discord Dev Team)
+- Lead Developer: **@frost**
+- Source Code: © 2025 Frost Universe
+
 ## 📄 License
 
-This project is licensed under the [MIT License](./LICENSE).  
-© 2025 Frost Universe. All rights reserved.
+This project is licensed under the [MIT License](./LICENSE)
 
 ## 📜 Terms of Service & Privacy Policy
 
-By using this bot, you agree to the [Terms of Service and Privacy Policy](./TERMS.md).  
-No personal user data is collected. All configuration data is stored locally for bot functionality only.
+By using this bot, you agree to the [Terms of Service and Privacy Policy](./TERMS.md)
 
-For questions or data removal, contact: **@frost**  
-GitHub: [sFrostUniverse](https://github.com/sFrostUniverse)
+## 👥 Developer Team
+
+See: [TEAMS.md](./TEAMS.md) for team info and official bots under Frost Universe
+
+## 📬 Contact
+
+- GitHub: [sFrostUniverse](https://github.com/sFrostUniverse)
+- Discord: **@frost**
+
 
