@@ -31,3 +31,18 @@ Vikrant is a powerful, navy-themed security and moderation bot built to protect 
 - Source: [GitHub Repository](https://github.com/sFrostUniverse/Vikrant-bot)
 - Built by: **sFrostUniverse**
 - Always watching your server 👁
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](./LICENSE).  
+© 2025 Frost Universe. All rights reserved.
+
+## 📜 Terms of Service & Privacy Policy
+
+By using this bot, you agree to the [Terms of Service and Privacy Policy](./TERMS.md).  
+No personal user data is collected. All configuration data is stored locally for bot functionality only.
+
+For questions or data removal, contact: **Sehaj#0001**  
+GitHub: [sFrostUniverse](https://github.com/sFrostUniverse)
