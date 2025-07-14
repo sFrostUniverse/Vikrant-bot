@@ -44,5 +44,6 @@ This project is licensed under the [MIT License](./LICENSE).
 By using this bot, you agree to the [Terms of Service and Privacy Policy](./TERMS.md).  
 No personal user data is collected. All configuration data is stored locally for bot functionality only.
 
-For questions or data removal, contact: **Sehaj#0001**  
+For questions or data removal, contact: **@frost**  
 GitHub: [sFrostUniverse](https://github.com/sFrostUniverse)
+
