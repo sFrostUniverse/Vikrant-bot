@@ -3,10 +3,6 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 from utils.logger import setup_logger
-from keep_alive import keep_alive
-
-# Start the keep-alive server (Render/Replit/other hosting)
-keep_alive()
 
 # Setup logging
 setup_logger()
@@ -51,6 +47,5 @@ class MyBot(commands.Bot):
 # Initialize bot
 client = MyBot()
 
-# Run bot (handles aiohttp session cleanup automatically)
 if __name__ == "__main__":
     client.run(TOKEN)
