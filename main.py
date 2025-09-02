@@ -1,12 +1,11 @@
 import discord
 from discord.ext import commands
 import os
-import asyncio
 from dotenv import load_dotenv
 from utils.logger import setup_logger
 from keep_alive import keep_alive
 
-# Start the keep-alive server (Render/Replit)
+# Start the keep-alive server (Render/Replit/other hosting)
 keep_alive()
 
 # Setup logging
@@ -22,36 +21,36 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
+
+class MyBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=intents)
+        self.synced = False  # Track slash sync status
+
+    async def setup_hook(self):
+        """Load cogs before the bot is ready."""
+        for filename in os.listdir("./cogs"):
+            if filename.endswith(".py") and filename != "__init__.py":
+                try:
+                    await self.load_extension(f"cogs.{filename[:-3]}")
+                    print(f"✅ Loaded cog: {filename}")
+                except Exception as e:
+                    print(f"❌ Failed to load {filename}: {e}")
+
+        # Sync slash commands globally (only once per run)
+        try:
+            synced = await self.tree.sync()
+            print(f"🌍 Globally synced {len(synced)} slash command(s).")
+        except Exception as e:
+            print(f"❌ Failed to sync commands: {e}")
+
+    async def on_ready(self):
+        print(f"✅ Logged in as {self.user} ({self.user.id})")
+
+
 # Initialize bot
-client = commands.Bot(command_prefix="!", intents=intents)
-client.synced = False
+client = MyBot()
 
-# Load all cogs from /cogs
-async def load_cogs():
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py") and filename != "__init__.py":
-            try:
-                await client.load_extension(f"cogs.{filename[:-3]}")
-                print(f"✅ Loaded cog: {filename}")
-            except Exception as e:
-                print(f"❌ Failed to load {filename}: {e}")
-
-# Sync slash commands globally
-@client.event
-async def on_ready():
-    await client.wait_until_ready()
-    try:
-        synced = await client.tree.sync()
-        print(f"🌍 Globally synced {len(synced)} slash command(s).")
-    except Exception as e:
-        print(f"❌ Failed to sync commands: {e}")
-
-    print(f"✅ Logged in as {client.user} ({client.user.id})")
-
-# Entry point
-async def main():
-    await load_cogs()
-    await client.start(TOKEN)
-
-# Run the bot
-asyncio.run(main())
+# Run bot (handles aiohttp session cleanup automatically)
+if __name__ == "__main__":
+    client.run(TOKEN)
