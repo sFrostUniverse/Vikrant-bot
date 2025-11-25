@@ -4,10 +4,26 @@ import os
 from dotenv import load_dotenv
 from utils.logger import setup_logger
 
+# 🔥 keep-alive web server for Render
+from flask import Flask
+import threading
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is alive!"
+
+def start_web_server():
+    port = int(os.environ.get("PORT", 5000))   # Render assigns a dynamic port
+    app.run(host="0.0.0.0", port=port)
+
+# Setup logging and token
 setup_logger()
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+# Discord intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
@@ -39,6 +55,9 @@ class MyBot(commands.Bot):
 client = MyBot()
 
 if __name__ == "__main__":
+    # 🔥 Start flask web server first (to prevent Render from killing bot)
+    threading.Thread(target=start_web_server).start()
+
     try:
         client.run(TOKEN)
     except Exception as e:
