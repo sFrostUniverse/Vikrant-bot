@@ -4,469 +4,293 @@ from discord import app_commands
 import sqlite3
 from datetime import datetime, timezone
 
-DB_PATH = "logging.db"
+DB = "logging.db"
 
-# ----------- INS VIKRANT THEME COLORS -------------
-VIKRANT_HULL = discord.Color.from_rgb(108, 122, 137)   # steel grey
-VIKRANT_NAVY = discord.Color.from_rgb(0, 31, 63)       # deep navy blue
-VIKRANT_ALERT = discord.Color.from_rgb(192, 57, 43)    # red alert
-VIKRANT_WARN = discord.Color.from_rgb(255, 153, 51)    # saffron
-VIKRANT_OK = discord.Color.from_rgb(41, 128, 185)      # ocean blue
+# compact Vikrant colors
+NAVY = discord.Color.from_rgb(0, 31, 63)
+GREY = discord.Color.from_rgb(108, 122, 137)
+OK   = discord.Color.from_rgb(46, 204, 113)
+WARN = discord.Color.from_rgb(255, 153, 51)
+ALRT = discord.Color.from_rgb(192, 57, 43)
 
-def now_utc():
+
+def utc_now():
     return datetime.now(timezone.utc)
 
-def ts_str():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 class Logs(commands.Cog):
-    """INS Vikrant – Naval Surveillance Logging System"""
+    """Vikrant Compact Logging System"""
 
     def __init__(self, bot):
         self.bot = bot
         self._db_init()
-        self.invite_cache = {}
-        self.bot.loop.create_task(self._build_invite_cache())
+        self.inv_cache = {}
+        self.bot.loop.create_task(self._load_invites())
 
-    # ---------------- DB ----------------
-    def _connect(self):
-        return sqlite3.connect(DB_PATH)
+    # ─────────────────────────────
+    # DATABASE
+    # ─────────────────────────────
+    def db(self):
+        return sqlite3.connect(DB)
 
     def _db_init(self):
-        con = self._connect()
+        con = self.db()
         cur = con.cursor()
 
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS logs (
-                guild_id INTEGER PRIMARY KEY,
-                channel_id INTEGER
-            )
-        """)
+        CREATE TABLE IF NOT EXISTS logs (
+            guild_id INTEGER PRIMARY KEY,
+            channel_id INTEGER
+        )""")
 
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS invites (
-                guild_id INTEGER,
-                code TEXT,
-                inviter_id INTEGER,
-                uses INTEGER,
-                PRIMARY KEY (guild_id, code)
-            )
-        """)
+        CREATE TABLE IF NOT EXISTS invites (
+            guild_id INTEGER,
+            code TEXT,
+            inviter_id INTEGER,
+            uses INTEGER,
+            PRIMARY KEY(guild_id, code)
+        )""")
 
         con.commit()
         con.close()
 
-    def db_set_log_channel(self, guild_id, channel_id):
-        con = self._connect()
+    def set_log(self, gid, cid):
+        con = self.db()
         cur = con.cursor()
-        cur.execute("INSERT OR REPLACE INTO logs VALUES (?,?)", (guild_id, channel_id))
+        cur.execute("INSERT OR REPLACE INTO logs VALUES (?,?)", (gid, cid))
         con.commit()
         con.close()
 
-    def db_get_log_channel(self, guild_id):
-        con = self._connect()
+    def get_log(self, gid):
+        con = self.db()
         cur = con.cursor()
-        cur.execute("SELECT channel_id FROM logs WHERE guild_id=?", (guild_id,))
+        cur.execute("SELECT channel_id FROM logs WHERE guild_id=?", (gid,))
         row = cur.fetchone()
         con.close()
         return row[0] if row else None
 
-    def db_clear_log_channel(self, guild_id):
-        con = self._connect()
-        cur = con.cursor()
-        cur.execute("DELETE FROM logs WHERE guild_id=?", (guild_id,))
-        con.commit()
-        con.close()
-
-    def db_save_invite(self, guild_id, code, inviter_id, uses):
-        con = self._connect()
+    def save_inv(self, gid, code, inviter, uses):
+        con = self.db()
         cur = con.cursor()
         cur.execute("""
-            INSERT OR REPLACE INTO invites VALUES (?, ?, ?, ?)
-        """, (guild_id, code, inviter_id, uses))
+        INSERT OR REPLACE INTO invites VALUES (?,?,?,?)
+        """, (gid, code, inviter, uses))
         con.commit()
         con.close()
 
-    def db_invites_for_guild(self, guild_id):
-        con = self._connect()
+    def count_inv(self, gid, uid):
+        con = self.db()
         cur = con.cursor()
-        cur.execute("SELECT code, inviter_id, uses FROM invites WHERE guild_id=?", (guild_id,))
-        rows = cur.fetchall()
-        con.close()
-        return {code: (inviter_id, uses) for code, inviter_id, uses in rows}
-
-    def db_invites_count_for_user(self, guild_id, user_id):
-        con = self._connect()
-        cur = con.cursor()
-        cur.execute(
-            "SELECT SUM(uses) FROM invites WHERE guild_id=? AND inviter_id=?",
-            (guild_id, user_id)
-        )
+        cur.execute("""
+        SELECT SUM(uses) FROM invites WHERE guild_id=? AND inviter_id=?
+        """, (gid, uid))
         row = cur.fetchone()
         con.close()
         return row[0] if row and row[0] else 0
 
-    def db_invites_top(self, guild_id, limit=10):
-        con = self._connect()
+    def top_invites(self, gid):
+        con = self.db()
         cur = con.cursor()
         cur.execute("""
-            SELECT inviter_id, SUM(uses) AS total
-            FROM invites
-            WHERE guild_id=? AND inviter_id IS NOT NULL
-            GROUP BY inviter_id
-            ORDER BY total DESC
-            LIMIT ?
-        """, (guild_id, limit))
+        SELECT inviter_id, SUM(uses) AS t
+        FROM invites
+        WHERE guild_id=? AND inviter_id IS NOT NULL
+        GROUP BY inviter_id
+        ORDER BY t DESC
+        LIMIT 10
+        """, (gid,))
         rows = cur.fetchall()
         con.close()
         return rows
 
-    # ---------------- UTILS ---------------
-    async def send_log(self, guild, embed):
-        channel_id = self.db_get_log_channel(guild.id)
-        if not channel_id:
-            return
-        channel = guild.get_channel(channel_id)
-        if channel:
-            try:
-                await channel.send(embed=embed)
-            except:
-                pass
-
-    def make_embed(self, title, desc="", color=VIKRANT_HULL):
-        embed = discord.Embed(
-            title=f"⛨ INS VIKRANT // {title}",
-            description=desc,
+    # ─────────────────────────────
+    # EMBED MAKER (DINO STYLE)
+    # ─────────────────────────────
+    def embed(self, title, color, user=None):
+        e = discord.Embed(
+            title=f"Vikrant • {title}",
             color=color,
-            timestamp=now_utc()
+            timestamp=utc_now()
         )
-        if self.bot.user:
-            embed.set_author(
-                name=self.bot.user.name,
-                icon_url=self.bot.user.display_avatar.url
-            )
-        embed.set_footer(text="INS Vikrant • Naval Surveillance Online")
-        return embed
 
-    # ------------- INVITE CACHE ----------------
-    async def _build_invite_cache(self):
+        if user:
+            e.set_author(name=user.name, icon_url=user.display_avatar.url)
+        else:
+            e.set_author(name=self.bot.user.name, icon_url=self.bot.user.display_avatar.url)
+
+        e.set_footer(text="Vikrant Logs")
+        return e
+
+    async def send(self, guild, embed):
+        ch = self.get_log(guild.id)
+        if ch:
+            c = guild.get_channel(ch)
+            if c:
+                try:
+                    await c.send(embed=embed)
+                except:
+                    pass
+
+    # ─────────────────────────────
+    # INVITE CACHE
+    # ─────────────────────────────
+    async def _load_invites(self):
         await self.bot.wait_until_ready()
-        for guild in self.bot.guilds:
+
+        for g in self.bot.guilds:
             try:
-                invites = await guild.invites()
+                invs = await g.invites()
             except:
                 continue
 
             cache = {}
-            for inv in invites:
-                inviter = inv.inviter.id if inv.inviter else None
-                cache[inv.code] = (inv.uses, inviter)
-                self.db_save_invite(guild.id, inv.code, inviter, inv.uses)
+            for i in invs:
+                inviter = i.inviter.id if i.inviter else None
+                cache[i.code] = (i.uses, inviter)
+                self.save_inv(g.id, i.code, inviter, i.uses)
 
-            self.invite_cache[guild.id] = cache
+            self.inv_cache[g.id] = cache
 
-    # ---------------- SLASH COMMANDS ----------------
-
-    @app_commands.command(name="logs", description="Configure Vikrant log channel")
-    async def logs_cmd(self, interaction: discord.Interaction, action: str, channel: discord.TextChannel = None):
+    # ─────────────────────────────
+    # SLASH COMMANDS
+    # ─────────────────────────────
+    @app_commands.command(name="logs", description="Configure Vikrant logs")
+    async def logs(self, inter, action: str, channel: discord.TextChannel = None):
         action = action.lower()
-        guild = interaction.guild
 
         if action == "set":
-            if channel is None:
-                return await interaction.response.send_message("❌ Provide a channel.", ephemeral=True)
-            self.db_set_log_channel(guild.id, channel.id)
-            return await interaction.response.send_message(f"✅ Log channel set to {channel.mention}", ephemeral=True)
+            if not channel:
+                return await inter.response.send_message("Provide a channel.", ephemeral=True)
+            self.set_log(inter.guild.id, channel.id)
+            return await inter.response.send_message(f"Logging → {channel.mention}", ephemeral=True)
 
         if action == "show":
-            ch = self.db_get_log_channel(guild.id)
-            if ch:
-                return await interaction.response.send_message(f"📡 Logs → <#{ch}>", ephemeral=True)
-            return await interaction.response.send_message("⚠ No log channel configured.", ephemeral=True)
+            cid = self.get_log(inter.guild.id)
+            return await inter.response.send_message(
+                f"Log channel: <#{cid}>" if cid else "No log channel set.",
+                ephemeral=True
+            )
 
         if action == "disable":
-            self.db_clear_log_channel(guild.id)
-            return await interaction.response.send_message("🛑 Logging disabled.", ephemeral=True)
+            self.set_log(inter.guild.id, None)
+            return await inter.response.send_message("Disabled.", ephemeral=True)
 
-        return await interaction.response.send_message("❌ Invalid. Use: set / show / disable", ephemeral=True)
+        await inter.response.send_message("Invalid option.", ephemeral=True)
 
-    @app_commands.command(name="logs_test", description="Send a Vikrant test log")
-    async def logs_test(self, interaction: discord.Interaction):
-        embed = self.make_embed("SYSTEM TEST", "📡 Vikrant surveillance is online.", VIKRANT_OK)
-        await self.send_log(interaction.guild, embed)
-        await interaction.response.send_message("✅ Sent.", ephemeral=True)
+    @app_commands.command(name="logs_test")
+    async def logs_test(self, inter):
+        e = self.embed("Test", OK, inter.user)
+        e.add_field(name="Status", value="Working", inline=False)
+        await self.send(inter.guild, e)
+        await inter.response.send_message("Sent.", ephemeral=True)
 
-    @app_commands.command(name="invites", description="Check how many users someone invited.")
-    async def invites(self, interaction: discord.Interaction, user: discord.Member = None):
-        user = user or interaction.user
-        total = self.db_invites_count_for_user(interaction.guild.id, user.id)
-
-        embed = self.make_embed("INVITE STATS", color=VIKRANT_NAVY)
-        embed.add_field(name="User", value=user.mention, inline=True)
-        embed.add_field(name="Total Invited", value=str(total), inline=True)
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @app_commands.command(name="invites_top", description="Top inviters in the server")
-    async def invites_top(self, interaction: discord.Interaction):
-        rows = self.db_invites_top(interaction.guild.id)
-
-        embed = self.make_embed("INVITE LEADERBOARD", color=VIKRANT_NAVY)
-
-        if not rows:
-            embed.description = "No invite data yet."
-        else:
-            text = ""
-            for i, (uid, total) in enumerate(rows, start=1):
-                member = interaction.guild.get_member(uid)
-                name = member.mention if member else f"`{uid}`"
-                text += f"**#{i}** {name}: **{total}** invites\n"
-            embed.description = text
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    # ---------------- MEMBER JOIN ----------------
-
+    # ─────────────────────────────
+    # EVENTS
+    # ─────────────────────────────
     @commands.Cog.listener()
-    async def on_member_join(self, member):
-        guild = member.guild
-        try:
-            new_invites = await guild.invites()
-        except:
-            new_invites = []
+    async def on_member_join(self, m):
 
-        old = self.invite_cache.get(guild.id, {})
+        g = m.guild
+        try:
+            new = await g.invites()
+        except:
+            new = []
+
+        old = self.inv_cache.get(g.id, {})
         used = None
 
-        for inv in new_invites:
+        for inv in new:
             if inv.code in old and inv.uses > old[inv.code][0]:
                 used = inv
                 break
 
         cache = {}
-        for inv in new_invites:
+        for inv in new:
             inviter = inv.inviter.id if inv.inviter else None
             cache[inv.code] = (inv.uses, inviter)
-            self.db_save_invite(guild.id, inv.code, inviter, inv.uses)
-        self.invite_cache[guild.id] = cache
+            self.save_inv(g.id, inv.code, inviter, inv.uses)
 
-        embed = self.make_embed("MEMBER JOINED", color=VIKRANT_OK)
-        embed.add_field(name="User", value=f"{member.mention} (`{member.id}`)", inline=False)
-        embed.add_field(name="Account Created", value=member.created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
+        self.inv_cache[g.id] = cache
+
+        e = self.embed("Member Joined", OK, m)
+        e.add_field(name="User", value=m.mention, inline=False)
 
         if used:
-            old_uses = old[used.code][0]
-            embed.add_field(name="Invited By", value=used.inviter.mention, inline=False)
-            embed.add_field(name="Invite Code", value=f"`{used.code}`", inline=False)
-            embed.add_field(
-                name="Invite Uses",
-                value=f"{old_uses} → {used.uses}",
-                inline=False
-            )
-        else:
-            embed.add_field(
-                name="Invite Info",
-                value="Could not determine (vanity / expired / missing perms).",
-                inline=False
-            )
+            e.add_field(name="Invited By", value=used.inviter.mention, inline=False)
+            e.add_field(name="Code", value=f"`{used.code}` ({old[used.code][0]} → {used.uses})", inline=False)
 
-        embed.set_thumbnail(url=member.display_avatar.url)
-        await self.send_log(guild, embed)
-
-    # ---------------- MEMBER LEAVE ----------------
+        await self.send(g, e)
 
     @commands.Cog.listener()
-    async def on_member_remove(self, member):
-        guild = member.guild
-        embed = self.make_embed("MEMBER LEFT", color=VIKRANT_WARN)
-        embed.add_field(name="User", value=f"{member.mention} (`{member.id}`)", inline=False)
-        embed.set_thumbnail(url=member.display_avatar.url)
-        await self.send_log(guild, embed)
-
-    # ---------------- MESSAGE DELETE ----------------
+    async def on_member_remove(self, m):
+        e = self.embed("Member Left", WARN, m)
+        e.add_field(name="User", value=m.mention, inline=False)
+        await self.send(m.guild, e)
 
     @commands.Cog.listener()
-    async def on_message_delete(self, message):
-        if not message.guild or message.author.bot:
+    async def on_message_delete(self, msg):
+
+        if not msg.guild or msg.author.bot:
             return
 
-        embed = self.make_embed("MESSAGE DELETED", color=VIKRANT_ALERT)
-        embed.add_field(
-            name="Author",
-            value=f"{message.author.mention} (`{message.author.id}`)",
-            inline=False
-        )
-        embed.add_field(name="Channel", value=message.channel.mention, inline=False)
+        e = self.embed("Message Deleted", ALRT, msg.author)
+        e.add_field(name="User", value=msg.author.mention, inline=False)
+        e.add_field(name="Channel", value=msg.channel.mention, inline=False)
 
-        if message.content:
-            embed.add_field(name="Content", value=message.content[:1000], inline=False)
+        if msg.content:
+            e.add_field(name="Content", value=msg.content[:300], inline=False)
 
-        if message.attachments:
-            links = "\n".join(a.url for a in message.attachments)
-            embed.add_field(name="Attachments", value=links[:1000], inline=False)
-
-        embed.set_thumbnail(url=message.author.display_avatar.url)
-        await self.send_log(message.guild, embed)
-
-    # ---------------- MESSAGE EDIT ----------------
+        await self.send(msg.guild, e)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
+
         if not before.guild or before.author.bot:
             return
         if before.content == after.content:
             return
 
-        embed = self.make_embed("MESSAGE EDITED", color=VIKRANT_WARN)
-        embed.add_field(name="Author", value=before.author.mention, inline=False)
-        embed.add_field(name="Channel", value=before.channel.mention, inline=False)
-        embed.add_field(name="Before", value=before.content[:1000] or "*None*", inline=False)
-        embed.add_field(name="After", value=after.content[:1000] or "*None*", inline=False)
-        embed.set_thumbnail(url=before.author.display_avatar.url)
+        e = self.embed("Message Edited", WARN, before.author)
+        e.add_field(name="Channel", value=before.channel.mention, inline=False)
+        e.add_field(name="Before", value=before.content[:300], inline=False)
+        e.add_field(name="After", value=after.content[:300], inline=False)
 
-        await self.send_log(before.guild, embed)
-
-    # ---------------- BULK DELETE ----------------
+        await self.send(before.guild, e)
 
     @commands.Cog.listener()
-    async def on_bulk_message_delete(self, messages):
-        if not messages:
-            return
-        guild = messages[0].guild
-        channel = messages[0].channel
-
-        embed = self.make_embed("BULK DELETE", color=VIKRANT_ALERT)
-        embed.add_field(name="Channel", value=channel.mention, inline=False)
-        embed.add_field(name="Messages Deleted", value=str(len(messages)), inline=False)
-        await self.send_log(guild, embed)
-
-    # ---------------- VOICE LOGS ----------------
+    async def on_guild_channel_create(self, ch):
+        e = self.embed("Channel Created", OK)
+        e.add_field(name="Channel", value=ch.mention, inline=False)
+        await self.send(ch.guild, e)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, m, before, after):
-        guild = m.guild
-
-        if before.channel is None and after.channel is not None:
-            embed = self.make_embed("VOICE JOIN", f"{m.mention} joined **{after.channel.name}**", VIKRANT_OK)
-            embed.set_thumbnail(url=m.display_avatar.url)
-            return await self.send_log(guild, embed)
-
-        if before.channel and after.channel is None:
-            embed = self.make_embed("VOICE LEAVE", f"{m.mention} left **{before.channel.name}**", VIKRANT_WARN)
-            embed.set_thumbnail(url=m.display_avatar.url)
-            return await self.send_log(guild, embed)
-
-        if before.channel != after.channel:
-            embed = self.make_embed("VOICE MOVE", color=VIKRANT_NAVY)
-            embed.add_field(
-                name="Movement",
-                value=f"**{before.channel.name}** → **{after.channel.name}**",
-                inline=False
-            )
-            embed.add_field(name="User", value=m.mention, inline=False)
-            embed.set_thumbnail(url=m.display_avatar.url)
-            return await self.send_log(guild, embed)
-
-    # ---------------- CHANNEL LOGS ----------------
+    async def on_guild_channel_delete(self, ch):
+        e = self.embed("Channel Deleted", ALRT)
+        e.add_field(name="Channel", value=f"#{ch.name}", inline=False)
+        await self.send(ch.guild, e)
 
     @commands.Cog.listener()
-    async def on_guild_channel_create(self, channel):
-        guild = channel.guild
-        embed = self.make_embed("CHANNEL CREATED", color=VIKRANT_OK)
-        embed.add_field(
-            name="Channel",
-            value=channel.mention if hasattr(channel, "mention") else channel.name,
-            inline=False
-        )
-        await self.send_log(guild, embed)
+    async def on_voice_state_update(self, m, b, a):
 
-    @commands.Cog.listener()
-    async def on_guild_channel_delete(self, channel):
-        guild = channel.guild
-        embed = self.make_embed("CHANNEL DELETED", color=VIKRANT_ALERT)
-        embed.add_field(
-            name="Channel",
-            value=f"#{channel.name}",
-            inline=False
-        )
-        await self.send_log(guild, embed)
+        g = m.guild
 
-    @commands.Cog.listener()
-    async def on_guild_channel_update(self, before, after):
-        guild = after.guild
-        if before.name != after.name:
-            embed = self.make_embed("CHANNEL RENAMED", color=VIKRANT_HULL)
-            embed.add_field(name="Before", value=f"#{before.name}", inline=True)
-            embed.add_field(name="After", value=f"#{after.name}", inline=True)
-            await self.send_log(guild, embed)
+        if not b.channel and a.channel:
+            e = self.embed("Voice Join", OK, m)
+            e.add_field(name="Channel", value=a.channel.name, inline=False)
+            return await self.send(g, e)
 
-    # ---------------- ROLE LOGS ----------------
+        if b.channel and not a.channel:
+            e = self.embed("Voice Leave", WARN, m)
+            e.add_field(name="Channel", value=b.channel.name, inline=False)
+            return await self.send(g, e)
 
-    @commands.Cog.listener()
-    async def on_guild_role_create(self, role):
-        embed = self.make_embed("ROLE CREATED", color=VIKRANT_OK)
-        embed.add_field(name="Role", value=role.mention, inline=False)
-        await self.send_log(role.guild, embed)
+        if b.channel != a.channel:
+            e = self.embed("Voice Move", NAVY, m)
+            e.add_field(name="From", value=b.channel.name, inline=True)
+            e.add_field(name="To", value=a.channel.name, inline=True)
+            return await self.send(g, e)
 
-    @commands.Cog.listener()
-    async def on_guild_role_delete(self, role):
-        embed = self.make_embed("ROLE DELETED", color=VIKRANT_ALERT)
-        embed.add_field(name="Role", value=role.name, inline=False)
-        await self.send_log(role.guild, embed)
-
-    @commands.Cog.listener()
-    async def on_guild_role_update(self, before, after):
-        guild = after.guild
-        if before.name != after.name:
-            embed = self.make_embed("ROLE NAME CHANGED", color=VIKRANT_HULL)
-            embed.add_field(name="Before", value=before.name, inline=True)
-            embed.add_field(name="After", value=after.name, inline=True)
-            await self.send_log(guild, embed)
-
-    # ---------------- EMOJI LOGS ----------------
-
-    @commands.Cog.listener()
-    async def on_guild_emojis_update(self, guild, before, after):
-        before_map = {e.id: e for e in before}
-        after_map = {e.id: e for e in after}
-
-        for eid, emoji in after_map.items():
-            if eid not in before_map:
-                embed = self.make_embed("EMOJI ADDED", color=VIKRANT_OK)
-                embed.add_field(name="Emoji", value=str(emoji), inline=False)
-                await self.send_log(guild, embed)
-
-        for eid, emoji in before_map.items():
-            if eid not in after_map:
-                embed = self.make_embed("EMOJI REMOVED", color=VIKRANT_ALERT)
-                embed.add_field(name="Emoji", value=str(emoji), inline=False)
-                await self.send_log(guild, embed)
-
-    # ---------------- GUILD UPDATE ----------------
-
-    @commands.Cog.listener()
-    async def on_guild_update(self, before, after):
-        changes = []
-
-        if before.name != after.name:
-            changes.append(("Name", before.name, after.name))
-        if before.icon != after.icon:
-            changes.append(("Icon", "Changed", "Changed"))
-        if before.banner != after.banner:
-            changes.append(("Banner", "Changed", "Changed"))
-
-        if not changes:
-            return
-
-        embed = self.make_embed("SERVER UPDATED", color=VIKRANT_HULL)
-        for label, old, new in changes:
-            embed.add_field(
-                name=label,
-                value=f"**Before:** {old or 'None'}\n**After:** {new or 'None'}",
-                inline=False
-            )
-
-        await self.send_log(after, embed)
 
 async def setup(bot):
     await bot.add_cog(Logs(bot))
