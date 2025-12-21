@@ -18,12 +18,14 @@ class Setup(commands.Cog):
             data = json.load(f)
 
         data[str(guild_id)] = {
-            "admin_log_channel": admin_channel_id,
-            "complaint_channel_id": complaint_channel_id,
-            "trusted_admins": [trusted_admin_id],
-            "auto_punish": True,
-            "punishment_type": "ban"
-        }
+        "setup_owner_id": trusted_admin_id,   # 👈 OWNER WHO RAN SETUP
+        "admin_log_channel": admin_channel_id,
+        "complaint_channel_id": complaint_channel_id,
+        "trusted_admins": [trusted_admin_id],
+        "auto_punish": True,
+        "punishment_type": "ban"
+    }
+
 
         with open(CONFIG_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -48,9 +50,33 @@ class Setup(commands.Cog):
 
     @app_commands.command(name="setup", description="Initial server setup for Vikrant Security Bot")
     async def setup(self, interaction: discord.Interaction):
+        guild = interaction.guild
+
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ You must be an administrator to run setup.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ You must be an administrator to run setup.",
+                ephemeral=True
+            )
             return
+
+        # 🔐 Load config if exists
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, "r") as f:
+                data = json.load(f)
+
+            guild_data = data.get(str(guild.id))
+
+            if guild_data:
+                stored_owner = guild_data.get("setup_owner_id")
+
+                # ❌ Not original setup owner AND not Discord owner
+                if interaction.user.id != stored_owner and interaction.user.id != guild.owner_id:
+                    await interaction.response.send_message(
+                        "🚫 This server is already configured.\n"
+                        "Only the **original setup owner** or **server owner** can reconfigure Vikrant.",
+                        ephemeral=True
+                    )
+                    return
 
         view = SetupChoiceView(self, interaction)
         await interaction.response.send_message(
@@ -58,6 +84,7 @@ class Setup(commands.Cog):
             view=view,
             ephemeral=True
         )
+
 
 class SetupChoiceView(discord.ui.View):
     def __init__(self, cog, interaction):
