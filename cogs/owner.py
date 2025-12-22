@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-
 import os
 from dotenv import load_dotenv
 
@@ -10,25 +9,51 @@ OWNER_ID = int(os.getenv("OWNER_ID"))
 
 
 class Owner(commands.Cog):
-    def __init__(self,bot):
+    def __init__(self, bot):
         self.bot = bot
 
-    def is_owner(interaction: discord.Interaction) -> bool:
-        return interaction.user.id == OWNER_ID
-    
-    @app_commands.command(name="say", description="Make Vikrant say a message (owner only)")
-    @app_commands.check(is_owner)
+    # ─────────────────────────────
+    # PERMISSION CHECK
+    # ─────────────────────────────
+    def can_say(self, interaction: discord.Interaction) -> bool:
+        # Bot owner (global)
+        if interaction.user.id == OWNER_ID:
+            return True
+
+        # Must be in a guild
+        if not interaction.guild:
+            return False
+
+        # Server owner
+        if interaction.user.id == interaction.guild.owner_id:
+            return True
+
+        # Server admin
+        return interaction.user.guild_permissions.administrator
+
+    # ─────────────────────────────
+    # COMMAND
+    # ─────────────────────────────
+    @app_commands.command(
+        name="say",
+        description="Make Vikrant say a message (Admins only)"
+    )
+    @app_commands.check(can_say)
     async def say(self, interaction: discord.Interaction, message: str):
         await interaction.response.defer(ephemeral=True)
         await interaction.channel.send(message)
 
+    # ─────────────────────────────
+    # ERROR HANDLER
+    # ─────────────────────────────
     @say.error
     async def say_error(self, interaction: discord.Interaction, error):
         if isinstance(error, app_commands.errors.CheckFailure):
-            await interaction.response.send_message("🚫 You’re not allowed to use this command.", ephemeral=True)
+            await interaction.response.send_message(
+                "🚫 You must be a **server admin** to use this command.",
+                ephemeral=True
+            )
+
 
 async def setup(bot):
     await bot.add_cog(Owner(bot))
-
-
-
