@@ -2,12 +2,14 @@ import discord
 from discord.ext import commands
 import json
 import os
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
 
 CONFIG_FILE = "data/config.json"
 
 
+# ─────────────────────────────
+# CONFIG HELPERS
+# ─────────────────────────────
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         return {}
@@ -15,20 +17,18 @@ def load_config():
         return json.load(f)
 
 
-def get_log_channel_id(guild_id: int) -> Optional[int]:
-    data = load_config()
-    guild_data = data.get(str(guild_id))
-    if not guild_data:
+def get_log_channel(guild: discord.Guild):
+    data = load_config().get(str(guild.id))
+    if not data:
         return None
-    return guild_data.get("log_channel_id")
+    return guild.get_channel(data.get("log_channel_id"))
 
 
-def now():
-    return datetime.utcnow()
-
-
+# ─────────────────────────────
+# LOG COG
+# ─────────────────────────────
 class Logs(commands.Cog):
-    """Clean Dyno-style logging"""
+    """Dyno-style logging"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -38,54 +38,47 @@ class Logs(commands.Cog):
     # ─────────────────────────────
     # UTIL
     # ─────────────────────────────
-    async def send_log(self, guild: discord.Guild, embed: discord.Embed):
-        channel_id = get_log_channel_id(guild.id)
-        if not channel_id:
-            return
-
-        channel = guild.get_channel(channel_id)
+    async def send_log(self, guild, embed):
+        channel = get_log_channel(guild)
         if not channel:
             return
-
         try:
             await channel.send(embed=embed)
         except discord.Forbidden:
             pass
 
-    def base_embed(self, title: str, color: discord.Color):
+    def base(self, title, color):
         e = discord.Embed(
             title=title,
             color=color,
-            timestamp=now()
+            timestamp=datetime.now(timezone.utc)
         )
         e.set_footer(text="Vikrant Logs")
         return e
 
     # ─────────────────────────────
-    # INVITE CACHE
+    # INVITES
     # ─────────────────────────────
     async def cache_invites(self):
         await self.bot.wait_until_ready()
-
-        for guild in self.bot.guilds:
+        for g in self.bot.guilds:
             try:
-                invites = await guild.invites()
-                self.invite_cache[guild.id] = invites
-            except discord.Forbidden:
-                self.invite_cache[guild.id] = []
+                self.invite_cache[g.id] = await g.invites()
+            except:
+                self.invite_cache[g.id] = []
 
     # ─────────────────────────────
-    # EVENTS
+    # MEMBER JOIN (INVITES)
     # ─────────────────────────────
     @commands.Cog.listener()
-    async def on_member_join(self, member: discord.Member):
+    async def on_member_join(self, member):
         guild = member.guild
         inviter = None
-        used_code = None
+        code = None
 
         try:
             new_invites = await guild.invites()
-        except discord.Forbidden:
+        except:
             new_invites = []
 
         old_invites = self.invite_cache.get(guild.id, [])
@@ -94,46 +87,45 @@ class Logs(commands.Cog):
             for new in new_invites:
                 if old.code == new.code and new.uses > old.uses:
                     inviter = new.inviter
-                    used_code = new.code
+                    code = f"{new.code} ({old.uses} → {new.uses})"
                     break
 
         self.invite_cache[guild.id] = new_invites
 
-        e = self.base_embed("Member Joined", discord.Color.green())
-        e.add_field(name="User", value=f"{member} ({member.id})", inline=False)
+        e = self.base("Member Joined", discord.Color.green())
+        e.add_field(name="User", value=member.mention, inline=False)
 
         if inviter:
-            e.add_field(name="Invited By", value=f"{inviter} ({inviter.id})", inline=False)
-            e.add_field(name="Invite Code", value=used_code, inline=False)
+            e.add_field(name="Invited By", value=inviter.mention, inline=False)
+            e.add_field(name="Code", value=code, inline=False)
         else:
-            e.add_field(name="Invite", value="Unknown / Vanity / Missing Permission", inline=False)
+            e.add_field(name="Invite", value="Unknown / Vanity / Bot Offline", inline=False)
 
         await self.send_log(guild, e)
 
+    # ─────────────────────────────
+    # MESSAGE DELETE (TEXT + IMAGES)
+    # ─────────────────────────────
     @commands.Cog.listener()
-    async def on_member_remove(self, member: discord.Member):
-        e = self.base_embed("Member Left", discord.Color.orange())
-        e.add_field(name="User", value=f"{member} ({member.id})", inline=False)
-        await self.send_log(member.guild, e)
-
-    @commands.Cog.listener()
-    async def on_message_delete(self, message: discord.Message):
-        if not message.guild or message.author.bot:
+    async def on_message_delete(self, msg):
+        if not msg.guild or msg.author.bot:
             return
 
-        e = self.base_embed("Message Deleted", discord.Color.red())
-        e.add_field(name="User", value=message.author.mention, inline=False)
-        e.add_field(name="Channel", value=message.channel.mention, inline=False)
+        e = self.base("Message Deleted", discord.Color.red())
+        e.add_field(name="User", value=msg.author.mention, inline=False)
+        e.add_field(name="Channel", value=msg.channel.mention, inline=False)
 
-        if message.content:
-            e.add_field(name="Content", value=message.content[:500], inline=False)
+        if msg.content:
+            e.add_field(name="Content", value=msg.content[:500], inline=False)
 
-        if message.attachments:
-            for a in message.attachments:
-                e.add_field(name="Attachment", value=a.url, inline=False)
+        for a in msg.attachments:
+            e.add_field(name="Attachment", value=a.url, inline=False)
 
-        await self.send_log(message.guild, e)
+        await self.send_log(msg.guild, e)
 
+    # ─────────────────────────────
+    # MESSAGE EDIT
+    # ─────────────────────────────
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         if not before.guild or before.author.bot:
@@ -141,7 +133,7 @@ class Logs(commands.Cog):
         if before.content == after.content:
             return
 
-        e = self.base_embed("Message Edited", discord.Color.gold())
+        e = self.base("Message Edited", discord.Color.orange())
         e.add_field(name="User", value=before.author.mention, inline=False)
         e.add_field(name="Channel", value=before.channel.mention, inline=False)
         e.add_field(name="Before", value=before.content[:300], inline=False)
@@ -149,35 +141,51 @@ class Logs(commands.Cog):
 
         await self.send_log(before.guild, e)
 
-    @commands.Cog.listener()
-    async def on_member_update(self, before, after):
-        # Nickname change
-        if before.nick != after.nick:
-            e = self.base_embed("Nickname Changed", discord.Color.blurple())
-            e.add_field(name="User", value=after.mention, inline=False)
-            e.add_field(name="Before", value=before.nick or before.name, inline=True)
-            e.add_field(name="After", value=after.nick or after.name, inline=True)
-            await self.send_log(after.guild, e)
-
+    # ─────────────────────────────
+    # VOICE EVENTS
+    # ─────────────────────────────
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         if before.channel == after.channel:
             return
 
-        e = self.base_embed("Voice State Update", discord.Color.blue())
+        e = self.base("Voice Activity", discord.Color.blurple())
         e.add_field(name="User", value=member.mention, inline=False)
-        e.add_field(
-            name="From",
-            value=before.channel.name if before.channel else "None",
-            inline=True
-        )
-        e.add_field(
-            name="To",
-            value=after.channel.name if after.channel else "None",
-            inline=True
-        )
+
+        if not before.channel:
+            e.add_field(name="Action", value=f"Joined **{after.channel.name}**", inline=False)
+        elif not after.channel:
+            e.add_field(name="Action", value=f"Left **{before.channel.name}**", inline=False)
+        else:
+            e.add_field(
+                name="Action",
+                value=f"Switched **{before.channel.name} → {after.channel.name}**",
+                inline=False
+            )
 
         await self.send_log(member.guild, e)
+
+    # ─────────────────────────────
+    # CHANNEL UPDATE
+    # ─────────────────────────────
+    @commands.Cog.listener()
+    async def on_guild_channel_update(self, before, after):
+        changes = []
+
+        if before.name != after.name:
+            changes.append(f"Name changed: **{before.name} → {after.name}**")
+
+        if before.overwrites != after.overwrites:
+            changes.append("Permissions updated")
+
+        if not changes:
+            return
+
+        e = self.base("Channel Updated", discord.Color.gold())
+        e.add_field(name="Channel", value=after.mention, inline=False)
+        e.add_field(name="Changes", value="\n".join(changes), inline=False)
+
+        await self.send_log(after.guild, e)
 
 
 async def setup(bot):
