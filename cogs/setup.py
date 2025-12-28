@@ -1,11 +1,15 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json, os
+import json
+import os
 
 CONFIG_FILE = "data/config.json"
 os.makedirs("data", exist_ok=True)
 
+# ─────────────────────────────
+# CONFIG HELPERS
+# ─────────────────────────────
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         return {}
@@ -16,12 +20,25 @@ def save_config(data):
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+def build_channel_options(guild: discord.Guild):
+    channels = guild.text_channels[:25]  # Discord hard limit
+    return [
+        discord.SelectOption(
+            label=ch.name[:100],
+            value=str(ch.id)
+        )
+        for ch in channels
+    ]
 
+
+# ─────────────────────────────
+# SETUP COG
+# ─────────────────────────────
 class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def save_config(
+    async def write_config(
         self,
         guild_id: int,
         admin_channel_id: int,
@@ -33,7 +50,7 @@ class Setup(commands.Cog):
         data[str(guild_id)] = {
             "setup_owner_id": setup_owner_id,
             "admin_channel_id": admin_channel_id,
-            "log_channel_id": admin_channel_id,  # 🔥 SAME AS ADMIN CHANNEL
+            "log_channel_id": admin_channel_id,   # 🔥 same channel
             "complaint_channel_id": complaint_channel_id,
             "trusted_admins": [setup_owner_id],
             "auto_punish": True,
@@ -44,60 +61,51 @@ class Setup(commands.Cog):
 
         guild = self.bot.get_guild(guild_id)
         channel = guild.get_channel(admin_channel_id)
-        member = guild.get_member(setup_owner_id)
 
-        if channel and member:
+        if channel:
             embed = discord.Embed(
                 title="🛡️ Vikrant Setup Complete",
-                description="Server security has been configured successfully.",
+                description="Server security has been configured.",
                 color=discord.Color.green()
             )
-            embed.add_field(
-                name="Trusted Admin",
-                value=member.mention,
-                inline=False
-            )
-            embed.add_field(
-                name="Log Channel",
-                value=channel.mention,
-                inline=False
-            )
-            embed.set_footer(text="Vikrant • Auto-Security Setup")
-
+            embed.add_field(name="Admin / Log Channel", value=channel.mention, inline=False)
+            embed.add_field(name="Complaint Channel", value=f"<#{complaint_channel_id}>", inline=False)
+            embed.set_footer(text="Vikrant Security")
             await channel.send(embed=embed)
 
+    # ─────────────────────────────
+    # SLASH COMMAND
+    # ─────────────────────────────
     @app_commands.command(name="setup", description="Initial setup for Vikrant Security Bot")
     async def setup(self, interaction: discord.Interaction):
         guild = interaction.guild
 
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message(
+            return await interaction.response.send_message(
                 "❌ You must be an administrator to run setup.",
                 ephemeral=True
             )
-            return
 
-        data = load_config()
-        guild_data = data.get(str(guild.id))
-
-        if guild_data:
-            owner_id = guild_data.get("setup_owner_id")
+        config = load_config().get(str(guild.id))
+        if config:
+            owner_id = config.get("setup_owner_id")
             if interaction.user.id not in (owner_id, guild.owner_id):
-                await interaction.response.send_message(
+                return await interaction.response.send_message(
                     "🚫 This server is already configured.\n"
-                    "Only the **original setup owner** or **server owner** can reconfigure.",
+                    "Only the **original setup owner** or **server owner** may reconfigure.",
                     ephemeral=True
                 )
-                return
 
-        view = SetupChoiceView(self, interaction)
         await interaction.response.send_message(
-            "**🔧 Vikrant Setup**\nChoose how you want to configure the server:",
-            view=view,
+            "**🔧 Vikrant Setup**\nChoose how you want to configure:",
+            view=SetupChoiceView(self, interaction),
             ephemeral=True
         )
 
 
+# ─────────────────────────────
+# SETUP CHOICE VIEW
+# ─────────────────────────────
 class SetupChoiceView(discord.ui.View):
     def __init__(self, cog, interaction):
         super().__init__(timeout=60)
@@ -127,14 +135,16 @@ class SetupChoiceView(discord.ui.View):
         }
         for role in guild.roles:
             if role.permissions.administrator:
-                overwrites_complaint[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+                overwrites_complaint[role] = discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True
+                )
 
         complaint_channel = await guild.create_text_channel(
             "complaints",
             overwrites=overwrites_complaint
         )
 
-        await self.cog.save_config(
+        await self.cog.write_config(
             guild.id,
             admin_channel.id,
             complaint_channel.id,
@@ -158,6 +168,9 @@ class SetupChoiceView(discord.ui.View):
         )
 
 
+# ─────────────────────────────
+# MANUAL SETUP VIEW
+# ─────────────────────────────
 class ManualChannelSelectionView(discord.ui.View):
     def __init__(self, cog, interaction):
         super().__init__(timeout=60)
@@ -174,13 +187,21 @@ class ManualChannelSelectionView(discord.ui.View):
 class AdminChannelDropdown(discord.ui.Select):
     def __init__(self, view):
         self.view_ref = view
-        options = [
-            discord.SelectOption(label=c.name, value=str(c.id))
-            for c in view.interaction.guild.text_channels
-        ]
-        super().__init__(placeholder="Select Admin / Log Channel", options=options)
+        options = build_channel_options(view.interaction.guild)
+
+        if not options:
+            options = [discord.SelectOption(label="No channels available", value="none")]
+
+        super().__init__(
+            placeholder="Select Admin / Log Channel",
+            options=options,
+            row=0
+        )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            return
+
         self.view_ref.admin_channel = int(self.values[0])
         await interaction.response.send_message(
             f"✅ Admin & Log channel set to <#{self.values[0]}>",
@@ -191,13 +212,21 @@ class AdminChannelDropdown(discord.ui.Select):
 class ComplaintChannelDropdown(discord.ui.Select):
     def __init__(self, view):
         self.view_ref = view
-        options = [
-            discord.SelectOption(label=c.name, value=str(c.id))
-            for c in view.interaction.guild.text_channels
-        ]
-        super().__init__(placeholder="Select Complaint Channel", options=options)
+        options = build_channel_options(view.interaction.guild)
+
+        if not options:
+            options = [discord.SelectOption(label="No channels available", value="none")]
+
+        super().__init__(
+            placeholder="Select Complaint Channel",
+            options=options,
+            row=1
+        )
 
     async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "none":
+            return
+
         self.view_ref.complaint_channel = int(self.values[0])
         await interaction.response.send_message(
             f"✅ Complaint channel set to <#{self.values[0]}>",
@@ -212,13 +241,12 @@ class ConfirmButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if not self.view_ref.admin_channel or not self.view_ref.complaint_channel:
-            await interaction.response.send_message(
-                "⚠️ Select both channels first.",
+            return await interaction.response.send_message(
+                "⚠️ Please select both channels first.",
                 ephemeral=True
             )
-            return
 
-        await self.view_ref.cog.save_config(
+        await self.view_ref.cog.write_config(
             interaction.guild.id,
             self.view_ref.admin_channel,
             self.view_ref.complaint_channel,
