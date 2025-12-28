@@ -8,7 +8,7 @@ CONFIG_FILE = "data/config.json"
 
 
 # ─────────────────────────────
-# CONFIG HELPERS
+# CONFIG
 # ─────────────────────────────
 def load_config():
     if not os.path.exists(CONFIG_FILE):
@@ -18,17 +18,17 @@ def load_config():
 
 
 def get_log_channel(guild: discord.Guild):
-    data = load_config().get(str(guild.id))
-    if not data:
+    cfg = load_config().get(str(guild.id))
+    if not cfg:
         return None
-    return guild.get_channel(data.get("log_channel_id"))
+    return guild.get_channel(cfg.get("log_channel_id"))
 
 
 # ─────────────────────────────
-# LOG COG
+# LOGS COG
 # ─────────────────────────────
 class Logs(commands.Cog):
-    """Dyno-style logging"""
+    """Dyno-style logging (full voice + moderation parity)"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -40,21 +40,43 @@ class Logs(commands.Cog):
     # ─────────────────────────────
     async def send_log(self, guild, embed):
         channel = get_log_channel(guild)
-        if not channel:
-            return
-        try:
-            await channel.send(embed=embed)
-        except discord.Forbidden:
-            pass
+        if channel:
+            try:
+                await channel.send(embed=embed)
+            except discord.Forbidden:
+                pass
 
-    def base(self, title, color):
+    def base(self, title, color, user=None, big_avatar=False):
         e = discord.Embed(
             title=title,
             color=color,
             timestamp=datetime.now(timezone.utc)
         )
         e.set_footer(text="Vikrant Logs")
+
+        if user:
+            e.set_author(
+                name=str(user),
+                icon_url=user.display_avatar.url
+            )
+            if big_avatar:
+                e.set_thumbnail(url=user.display_avatar.url)
+
         return e
+
+    async def recent_audit(self, guild, action, target_id=None):
+        if not guild.me.guild_permissions.view_audit_log:
+            return None
+
+        try:
+            async for entry in guild.audit_logs(limit=5, action=action):
+                delta = (datetime.now(timezone.utc) - entry.created_at).total_seconds()
+                if delta <= 5:
+                    if target_id is None or entry.target.id == target_id:
+                        return entry
+        except:
+            pass
+        return None
 
     # ─────────────────────────────
     # INVITES
@@ -68,7 +90,7 @@ class Logs(commands.Cog):
                 self.invite_cache[g.id] = []
 
     # ─────────────────────────────
-    # MEMBER JOIN (INVITES)
+    # MEMBER JOIN / LEAVE
     # ─────────────────────────────
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -92,27 +114,36 @@ class Logs(commands.Cog):
 
         self.invite_cache[guild.id] = new_invites
 
-        e = self.base("Member Joined", discord.Color.green())
+        created = member.created_at
+        age_days = (datetime.now(timezone.utc) - created).days
+
+        e = self.base("Member Joined", discord.Color.green(), member, big_avatar=True)
         e.add_field(name="User", value=member.mention, inline=False)
+        e.add_field(name="Account Age", value=f"{age_days} days", inline=False)
 
         if inviter:
             e.add_field(name="Invited By", value=inviter.mention, inline=False)
             e.add_field(name="Code", value=code, inline=False)
         else:
-            e.add_field(name="Invite", value="Unknown / Vanity / Bot Offline", inline=False)
+            e.add_field(name="Invite", value="Unknown / Vanity / Offline", inline=False)
 
         await self.send_log(guild, e)
 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        e = self.base("Member Left", discord.Color.orange(), member, big_avatar=True)
+        e.add_field(name="User", value=member.mention, inline=False)
+        await self.send_log(member.guild, e)
+
     # ─────────────────────────────
-    # MESSAGE DELETE (TEXT + IMAGES)
+    # MESSAGE LOGS
     # ─────────────────────────────
     @commands.Cog.listener()
     async def on_message_delete(self, msg):
         if not msg.guild or msg.author.bot:
             return
 
-        e = self.base("Message Deleted", discord.Color.red())
-        e.add_field(name="User", value=msg.author.mention, inline=False)
+        e = self.base("Message Deleted", discord.Color.red(), msg.author)
         e.add_field(name="Channel", value=msg.channel.mention, inline=False)
 
         if msg.content:
@@ -123,9 +154,6 @@ class Logs(commands.Cog):
 
         await self.send_log(msg.guild, e)
 
-    # ─────────────────────────────
-    # MESSAGE EDIT
-    # ─────────────────────────────
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         if not before.guild or before.author.bot:
@@ -133,8 +161,7 @@ class Logs(commands.Cog):
         if before.content == after.content:
             return
 
-        e = self.base("Message Edited", discord.Color.orange())
-        e.add_field(name="User", value=before.author.mention, inline=False)
+        e = self.base("Message Edited", discord.Color.orange(), before.author)
         e.add_field(name="Channel", value=before.channel.mention, inline=False)
         e.add_field(name="Before", value=before.content[:300], inline=False)
         e.add_field(name="After", value=after.content[:300], inline=False)
@@ -142,28 +169,48 @@ class Logs(commands.Cog):
         await self.send_log(before.guild, e)
 
     # ─────────────────────────────
-    # VOICE EVENTS
+    # VOICE EVENTS (FULL)
     # ─────────────────────────────
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        if before.channel == after.channel:
-            return
+        guild = member.guild
 
-        e = self.base("Voice Activity", discord.Color.blurple())
-        e.add_field(name="User", value=member.mention, inline=False)
+        # ─── Mute / Deafen ───
+        if before.mute != after.mute:
+            entry = await self.recent_audit(guild, discord.AuditLogAction.member_update, member.id)
+            e = self.base("Voice Mute Update", discord.Color.blurple(), member)
+            e.add_field(name="State", value="Muted" if after.mute else "Unmuted", inline=False)
+            e.add_field(name="By", value=entry.user.mention if entry else "Self/System", inline=False)
+            return await self.send_log(guild, e)
 
-        if not before.channel:
-            e.add_field(name="Action", value=f"Joined **{after.channel.name}**", inline=False)
-        elif not after.channel:
-            e.add_field(name="Action", value=f"Left **{before.channel.name}**", inline=False)
-        else:
+        if before.deaf != after.deaf:
+            entry = await self.recent_audit(guild, discord.AuditLogAction.member_update, member.id)
+            e = self.base("Voice Deafen Update", discord.Color.blurple(), member)
+            e.add_field(name="State", value="Deafened" if after.deaf else "Undeafened", inline=False)
+            e.add_field(name="By", value=entry.user.mention if entry else "Self/System", inline=False)
+            return await self.send_log(guild, e)
+
+        # ─── Join / Leave / Switch / Kick ───
+        if before.channel != after.channel:
+            entry = await self.recent_audit(guild, discord.AuditLogAction.member_move, member.id)
+
+            e = self.base("Voice Activity", discord.Color.blurple(), member)
+
+            if before.channel and not after.channel:
+                action = f"Left **{before.channel.name}**"
+            elif not before.channel and after.channel:
+                action = f"Joined **{after.channel.name}**"
+            else:
+                action = f"Switched **{before.channel.name} → {after.channel.name}**"
+
+            e.add_field(name="Action", value=action, inline=False)
             e.add_field(
-                name="Action",
-                value=f"Switched **{before.channel.name} → {after.channel.name}**",
+                name="By",
+                value=entry.user.mention if entry else "Self",
                 inline=False
             )
 
-        await self.send_log(member.guild, e)
+            await self.send_log(guild, e)
 
     # ─────────────────────────────
     # CHANNEL UPDATE
@@ -173,7 +220,7 @@ class Logs(commands.Cog):
         changes = []
 
         if before.name != after.name:
-            changes.append(f"Name changed: **{before.name} → {after.name}**")
+            changes.append(f"Name: **{before.name} → {after.name}**")
 
         if before.overwrites != after.overwrites:
             changes.append("Permissions updated")
