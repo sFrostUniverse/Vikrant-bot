@@ -21,14 +21,37 @@ def save_config(data):
         json.dump(data, f, indent=4)
 
 def build_channel_options(guild: discord.Guild):
-    channels = guild.text_channels[:25]  # Discord hard limit
+    private_channels = []
+
+    for channel in guild.text_channels:
+        overwrite = channel.overwrites_for(guild.default_role)
+
+        # channel is private if @everyone CANNOT view it
+        if overwrite.view_channel is False:
+            private_channels.append(channel)
+
+    # sort by channel position (top → bottom)
+    private_channels.sort(key=lambda c: c.position)
+
+    # Discord dropdown limit
+    private_channels = private_channels[:25]
+
+    if not private_channels:
+        return [
+            discord.SelectOption(
+                label="No private channels found",
+                value="none"
+            )
+        ]
+
     return [
         discord.SelectOption(
-            label=ch.name[:100],
+            label=f"#{ch.name}",
             value=str(ch.id)
         )
-        for ch in channels
+        for ch in private_channels
     ]
+
 
 
 # ─────────────────────────────
