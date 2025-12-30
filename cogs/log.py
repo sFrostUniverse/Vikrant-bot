@@ -186,8 +186,9 @@ class Logs(commands.Cog):
             limit=5
         ):
             # must match target
-            if entry.target.id != member.id:
+            if not entry.target or entry.target.id != member.id:
                 continue
+
 
             # must be recent (≤5 seconds)
             delta = (datetime.now(timezone.utc) - entry.created_at).total_seconds()

@@ -106,7 +106,12 @@ class Setup(commands.Cog):
         description="Initial setup for Vikrant Security Bot"
     )
     async def setup(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.send_message(
+            "**🔧 Vikrant Setup**\nChoose how you want to configure:",
+            view=SetupChoiceView(self, interaction),
+            ephemeral=True
+        )
+
         guild = interaction.guild
 
         if not interaction.user.guild_permissions.administrator:
