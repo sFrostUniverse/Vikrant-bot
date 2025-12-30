@@ -230,7 +230,8 @@ class Logs(commands.Cog):
                 inline=False
             )
 
-        await self.send(guild, e)
+        await self.send_log(guild, e)
+
 
 
 async def setup(bot):
