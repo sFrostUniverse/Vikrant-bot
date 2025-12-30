@@ -93,7 +93,12 @@ class Setup(commands.Cog):
         description="Initial setup for Vikrant Security Bot"
     )
     async def setup(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        # 🔒 CRITICAL: Render / cold-start safe
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except discord.NotFound:
+            # Interaction expired before we could respond
+            return
 
         guild = interaction.guild
 
@@ -253,5 +258,8 @@ class ConfirmButton(discord.ui.Button):
             view=None
         )
 
+# ─────────────────────────────
+# LOAD
+# ─────────────────────────────
 async def setup(bot):
     await bot.add_cog(Setup(bot))

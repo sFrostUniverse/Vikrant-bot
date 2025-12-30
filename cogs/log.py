@@ -74,7 +74,7 @@ class Logs(commands.Cog):
                     continue
 
                 delta = (datetime.now(timezone.utc) - entry.created_at).total_seconds()
-                if delta <= 5:
+                if delta <= 10:  # instead of 5
                     return entry
         except:
             pass
