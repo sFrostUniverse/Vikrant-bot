@@ -25,15 +25,10 @@ def build_channel_options(guild: discord.Guild):
 
     for channel in guild.text_channels:
         overwrite = channel.overwrites_for(guild.default_role)
-
-        # channel is private if @everyone CANNOT view it
         if overwrite.view_channel is False:
             private_channels.append(channel)
 
-    # sort by channel position (top → bottom)
     private_channels.sort(key=lambda c: c.position)
-
-    # Discord dropdown limit
     private_channels = private_channels[:25]
 
     if not private_channels:
@@ -51,7 +46,6 @@ def build_channel_options(guild: discord.Guild):
         )
         for ch in private_channels
     ]
-
 
 
 # ─────────────────────────────
@@ -73,7 +67,7 @@ class Setup(commands.Cog):
         data[str(guild_id)] = {
             "setup_owner_id": setup_owner_id,
             "admin_channel_id": admin_channel_id,
-            "log_channel_id": admin_channel_id,   # 🔥 same channel
+            "log_channel_id": admin_channel_id,
             "complaint_channel_id": complaint_channel_id,
             "trusted_admins": [setup_owner_id],
             "auto_punish": True,
@@ -88,23 +82,35 @@ class Setup(commands.Cog):
         if channel:
             embed = discord.Embed(
                 title="🛡️ Vikrant Setup Complete",
-                description="Server security has been configured.",
+                description="Server security has been successfully configured.",
                 color=discord.Color.green()
             )
-            embed.add_field(name="Admin / Log Channel", value=channel.mention, inline=False)
-            embed.add_field(name="Complaint Channel", value=f"<#{complaint_channel_id}>", inline=False)
+            embed.add_field(
+                name="Admin / Log Channel",
+                value=channel.mention,
+                inline=False
+            )
+            embed.add_field(
+                name="Complaint Channel",
+                value=f"<#{complaint_channel_id}>",
+                inline=False
+            )
             embed.set_footer(text="Vikrant Security")
             await channel.send(embed=embed)
 
     # ─────────────────────────────
     # SLASH COMMAND
     # ─────────────────────────────
-    @app_commands.command(name="setup", description="Initial setup for Vikrant Security Bot")
+    @app_commands.command(
+        name="setup",
+        description="Initial setup for Vikrant Security Bot"
+    )
     async def setup(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
 
         if not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(
+            return await interaction.followup.send(
                 "❌ You must be an administrator to run setup.",
                 ephemeral=True
             )
@@ -113,13 +119,13 @@ class Setup(commands.Cog):
         if config:
             owner_id = config.get("setup_owner_id")
             if interaction.user.id not in (owner_id, guild.owner_id):
-                return await interaction.response.send_message(
+                return await interaction.followup.send(
                     "🚫 This server is already configured.\n"
                     "Only the **original setup owner** or **server owner** may reconfigure.",
                     ephemeral=True
                 )
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "**🔧 Vikrant Setup**\nChoose how you want to configure:",
             view=SetupChoiceView(self, interaction),
             ephemeral=True
@@ -135,7 +141,10 @@ class SetupChoiceView(discord.ui.View):
         self.cog = cog
         self.interaction = interaction
 
-    @discord.ui.button(label="Auto Create Channels", style=discord.ButtonStyle.success)
+    @discord.ui.button(
+        label="Auto Create Channels",
+        style=discord.ButtonStyle.success
+    )
     async def auto_create(self, interaction: discord.Interaction, _):
         guild = interaction.guild
 
@@ -159,7 +168,8 @@ class SetupChoiceView(discord.ui.View):
         for role in guild.roles:
             if role.permissions.administrator:
                 overwrites_complaint[role] = discord.PermissionOverwrite(
-                    view_channel=True, send_messages=True
+                    view_channel=True,
+                    send_messages=True
                 )
 
         complaint_channel = await guild.create_text_channel(
@@ -183,7 +193,10 @@ class SetupChoiceView(discord.ui.View):
             view=None
         )
 
-    @discord.ui.button(label="Manual Setup", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(
+        label="Manual Setup",
+        style=discord.ButtonStyle.secondary
+    )
     async def manual_setup(self, interaction: discord.Interaction, _):
         await interaction.response.edit_message(
             content="🔧 Select channels below:",
@@ -212,9 +225,6 @@ class AdminChannelDropdown(discord.ui.Select):
         self.view_ref = view
         options = build_channel_options(view.interaction.guild)
 
-        if not options:
-            options = [discord.SelectOption(label="No channels available", value="none")]
-
         super().__init__(
             placeholder="Select Admin / Log Channel",
             options=options,
@@ -237,9 +247,6 @@ class ComplaintChannelDropdown(discord.ui.Select):
         self.view_ref = view
         options = build_channel_options(view.interaction.guild)
 
-        if not options:
-            options = [discord.SelectOption(label="No channels available", value="none")]
-
         super().__init__(
             placeholder="Select Complaint Channel",
             options=options,
@@ -259,7 +266,10 @@ class ComplaintChannelDropdown(discord.ui.Select):
 
 class ConfirmButton(discord.ui.Button):
     def __init__(self, view):
-        super().__init__(label="Confirm Setup", style=discord.ButtonStyle.success)
+        super().__init__(
+            label="Confirm Setup",
+            style=discord.ButtonStyle.success
+        )
         self.view_ref = view
 
     async def callback(self, interaction: discord.Interaction):
