@@ -32,21 +32,12 @@ def build_channel_options(guild: discord.Guild):
     private_channels = private_channels[:25]
 
     if not private_channels:
-        return [
-            discord.SelectOption(
-                label="No private channels found",
-                value="none"
-            )
-        ]
+        return [discord.SelectOption(label="No private channels found", value="none")]
 
     return [
-        discord.SelectOption(
-            label=f"#{ch.name}",
-            value=str(ch.id)
-        )
+        discord.SelectOption(label=f"#{ch.name}", value=str(ch.id))
         for ch in private_channels
     ]
-
 
 # ─────────────────────────────
 # SETUP COG
@@ -85,11 +76,7 @@ class Setup(commands.Cog):
                 description="Server security has been successfully configured.",
                 color=discord.Color.green()
             )
-            embed.add_field(
-                name="Admin / Log Channel",
-                value=channel.mention,
-                inline=False
-            )
+            embed.add_field(name="Admin / Log Channel", value=channel.mention)
             embed.add_field(
                 name="Complaint Channel",
                 value=f"<#{complaint_channel_id}>",
@@ -106,20 +93,18 @@ class Setup(commands.Cog):
         description="Initial setup for Vikrant Security Bot"
     )
     async def setup(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            "**🔧 Vikrant Setup**\nChoose how you want to configure:",
-            view=SetupChoiceView(self, interaction),
-            ephemeral=True
-        )
+        await interaction.response.defer(ephemeral=True)
 
         guild = interaction.guild
 
+        # Permission check
         if not interaction.user.guild_permissions.administrator:
             return await interaction.followup.send(
                 "❌ You must be an administrator to run setup.",
                 ephemeral=True
             )
 
+        # Config ownership check
         config = load_config().get(str(guild.id))
         if config:
             owner_id = config.get("setup_owner_id")
@@ -130,26 +115,22 @@ class Setup(commands.Cog):
                     ephemeral=True
                 )
 
+        # Send setup UI
         await interaction.followup.send(
             "**🔧 Vikrant Setup**\nChoose how you want to configure:",
-            view=SetupChoiceView(self, interaction),
+            view=SetupChoiceView(self),
             ephemeral=True
         )
-
 
 # ─────────────────────────────
 # SETUP CHOICE VIEW
 # ─────────────────────────────
 class SetupChoiceView(discord.ui.View):
-    def __init__(self, cog, interaction):
+    def __init__(self, cog):
         super().__init__(timeout=60)
         self.cog = cog
-        self.interaction = interaction
 
-    @discord.ui.button(
-        label="Auto Create Channels",
-        style=discord.ButtonStyle.success
-    )
+    @discord.ui.button(label="Auto Create Channels", style=discord.ButtonStyle.success)
     async def auto_create(self, interaction: discord.Interaction, _):
         guild = interaction.guild
 
@@ -162,24 +143,21 @@ class SetupChoiceView(discord.ui.View):
                 overwrites_admin[role] = discord.PermissionOverwrite(view_channel=True)
 
         admin_channel = await guild.create_text_channel(
-            "vikrant-admin",
-            overwrites=overwrites_admin
+            "vikrant-admin", overwrites=overwrites_admin
         )
 
         overwrites_complaint = {
             guild.default_role: discord.PermissionOverwrite(view_channel=True, send_messages=False),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+            guild.me: discord.PermissionOverwrite(view_channel=True)
         }
         for role in guild.roles:
             if role.permissions.administrator:
                 overwrites_complaint[role] = discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True
+                    view_channel=True, send_messages=True
                 )
 
         complaint_channel = await guild.create_text_channel(
-            "complaints",
-            overwrites=overwrites_complaint
+            "complaints", overwrites=overwrites_complaint
         )
 
         await self.cog.write_config(
@@ -198,16 +176,12 @@ class SetupChoiceView(discord.ui.View):
             view=None
         )
 
-    @discord.ui.button(
-        label="Manual Setup",
-        style=discord.ButtonStyle.secondary
-    )
+    @discord.ui.button(label="Manual Setup", style=discord.ButtonStyle.secondary)
     async def manual_setup(self, interaction: discord.Interaction, _):
         await interaction.response.edit_message(
             content="🔧 Select channels below:",
             view=ManualChannelSelectionView(self.cog, interaction)
         )
-
 
 # ─────────────────────────────
 # MANUAL SETUP VIEW
@@ -216,65 +190,48 @@ class ManualChannelSelectionView(discord.ui.View):
     def __init__(self, cog, interaction):
         super().__init__(timeout=60)
         self.cog = cog
-        self.interaction = interaction
         self.admin_channel = None
         self.complaint_channel = None
 
-        self.add_item(AdminChannelDropdown(self))
-        self.add_item(ComplaintChannelDropdown(self))
+        self.add_item(AdminChannelDropdown(self, interaction))
+        self.add_item(ComplaintChannelDropdown(self, interaction))
         self.add_item(ConfirmButton(self))
 
-
 class AdminChannelDropdown(discord.ui.Select):
-    def __init__(self, view):
+    def __init__(self, view, interaction):
         self.view_ref = view
-        options = build_channel_options(view.interaction.guild)
-
         super().__init__(
             placeholder="Select Admin / Log Channel",
-            options=options,
-            row=0
+            options=build_channel_options(interaction.guild)
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if self.values[0] == "none":
-            return
-
-        self.view_ref.admin_channel = int(self.values[0])
-        await interaction.response.send_message(
-            f"✅ Admin & Log channel set to <#{self.values[0]}>",
-            ephemeral=True
-        )
-
+        if self.values[0] != "none":
+            self.view_ref.admin_channel = int(self.values[0])
+            await interaction.response.send_message(
+                f"✅ Admin channel set to <#{self.values[0]}>",
+                ephemeral=True
+            )
 
 class ComplaintChannelDropdown(discord.ui.Select):
-    def __init__(self, view):
+    def __init__(self, view, interaction):
         self.view_ref = view
-        options = build_channel_options(view.interaction.guild)
-
         super().__init__(
             placeholder="Select Complaint Channel",
-            options=options,
-            row=1
+            options=build_channel_options(interaction.guild)
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if self.values[0] == "none":
-            return
-
-        self.view_ref.complaint_channel = int(self.values[0])
-        await interaction.response.send_message(
-            f"✅ Complaint channel set to <#{self.values[0]}>",
-            ephemeral=True
-        )
-
+        if self.values[0] != "none":
+            self.view_ref.complaint_channel = int(self.values[0])
+            await interaction.response.send_message(
+                f"✅ Complaint channel set to <#{self.values[0]}>",
+                ephemeral=True
+            )
 
 class ConfirmButton(discord.ui.Button):
     def __init__(self, view):
-        super().__init__(
-            label="Confirm Setup",
-            style=discord.ButtonStyle.success
-        )
+        super().__init__(label="Confirm Setup", style=discord.ButtonStyle.success)
         self.view_ref = view
 
     async def callback(self, interaction: discord.Interaction):
@@ -295,7 +252,6 @@ class ConfirmButton(discord.ui.Button):
             content="✅ **Manual setup completed successfully.**",
             view=None
         )
-
 
 async def setup(bot):
     await bot.add_cog(Setup(bot))

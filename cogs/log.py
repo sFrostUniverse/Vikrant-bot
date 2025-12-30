@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 CONFIG_FILE = "data/config.json"
 
-
 # ─────────────────────────────
 # CONFIG
 # ─────────────────────────────
@@ -16,13 +15,11 @@ def load_config():
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
-
 def get_log_channel(guild: discord.Guild):
     cfg = load_config().get(str(guild.id))
     if not cfg:
         return None
     return guild.get_channel(cfg.get("log_channel_id"))
-
 
 # ─────────────────────────────
 # LOGS COG
@@ -65,17 +62,23 @@ class Logs(commands.Cog):
         return e
 
     async def recent_audit(self, guild, action, target_id=None):
-        if not guild.me.guild_permissions.view_audit_log:
+        if not guild.me or not guild.me.guild_permissions.view_audit_log:
             return None
 
         try:
             async for entry in guild.audit_logs(limit=5, action=action):
+                if not entry.target:
+                    continue
+
+                if target_id and entry.target.id != target_id:
+                    continue
+
                 delta = (datetime.now(timezone.utc) - entry.created_at).total_seconds()
                 if delta <= 5:
-                    if target_id is None or entry.target.id == target_id:
-                        return entry
+                    return entry
         except:
             pass
+
         return None
 
     # ─────────────────────────────
@@ -169,49 +172,32 @@ class Logs(commands.Cog):
         await self.send_log(before.guild, e)
 
     # ─────────────────────────────
-    # VOICE EVENTS (FULL)
+    # VOICE EVENTS (SAFE)
     # ─────────────────────────────
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # ignore no-op
+        if member.bot:
+            return
+
+        # join / leave only
         if before.channel == after.channel:
             return
 
         guild = member.guild
         actor = None
 
-        # check audit logs ONLY for moves
-        async for entry in guild.audit_logs(
-            action=discord.AuditLogAction.member_move,
-            limit=5
-        ):
-            # must match target
-            if not entry.target or entry.target.id != member.id:
-                continue
+        # ONLY check audit logs if user was moved
+        if before.channel and after.channel:
+            entry = await self.recent_audit(
+                guild,
+                discord.AuditLogAction.member_move,
+                target_id=member.id
+            )
+            if entry:
+                actor = entry.user
 
-
-            # must be recent (≤5 seconds)
-            delta = (datetime.now(timezone.utc) - entry.created_at).total_seconds()
-            if delta > 5:
-                continue
-
-            # actor can be same as member (mod moved themselves)
-            actor = entry.user
-            break
-
-        # build embed
-        e = self.base(
-            "Voice Channel Moved",
-            discord.Color.blurple(),
-            member
-        )
-
-        e.add_field(
-            name="User",
-            value=member.mention,
-            inline=False
-        )
-
+        e = self.base("Voice Channel Update", discord.Color.blurple(), member)
+        e.add_field(name="User", value=member.mention, inline=False)
         e.add_field(
             name="From",
             value=before.channel.name if before.channel else "None",
@@ -223,17 +209,13 @@ class Logs(commands.Cog):
             inline=True
         )
 
-        # 🔥 ONLY add this field if a moderator actually moved someone
         if actor:
-            e.add_field(
-                name="Moved By",
-                value=actor.mention,
-                inline=False
-            )
+            e.add_field(name="Moved By", value=actor.mention, inline=False)
 
         await self.send_log(guild, e)
 
-
-
+# ─────────────────────────────
+# LOAD
+# ─────────────────────────────
 async def setup(bot):
     await bot.add_cog(Logs(bot))
