@@ -173,66 +173,64 @@ class Logs(commands.Cog):
     # ─────────────────────────────
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
+        # ignore no-op
+        if before.channel == after.channel:
+            return
+
         guild = member.guild
+        actor = None
 
-        # ─── Mute / Deafen ───
-        if before.mute != after.mute:
-            entry = await self.recent_audit(guild, discord.AuditLogAction.member_update, member.id)
-            e = self.base("Voice Mute Update", discord.Color.blurple(), member)
-            e.add_field(name="State", value="Muted" if after.mute else "Unmuted", inline=False)
-            e.add_field(name="By", value=entry.user.mention if entry else "Self/System", inline=False)
-            return await self.send_log(guild, e)
+        # check audit logs ONLY for moves
+        async for entry in guild.audit_logs(
+            action=discord.AuditLogAction.member_move,
+            limit=5
+        ):
+            # must match target
+            if entry.target.id != member.id:
+                continue
 
-        if before.deaf != after.deaf:
-            entry = await self.recent_audit(guild, discord.AuditLogAction.member_update, member.id)
-            e = self.base("Voice Deafen Update", discord.Color.blurple(), member)
-            e.add_field(name="State", value="Deafened" if after.deaf else "Undeafened", inline=False)
-            e.add_field(name="By", value=entry.user.mention if entry else "Self/System", inline=False)
-            return await self.send_log(guild, e)
+            # must be recent (≤5 seconds)
+            delta = (datetime.now(timezone.utc) - entry.created_at).total_seconds()
+            if delta > 5:
+                continue
 
-        # ─── Join / Leave / Switch / Kick ───
-        if before.channel != after.channel:
-            entry = await self.recent_audit(guild, discord.AuditLogAction.member_move, member.id)
+            # actor can be same as member (mod moved themselves)
+            actor = entry.user
+            break
 
-            e = self.base("Voice Activity", discord.Color.blurple(), member)
+        # build embed
+        e = self.base(
+            "Voice Channel Moved",
+            discord.Color.blurple(),
+            member
+        )
 
-            if before.channel and not after.channel:
-                action = f"Left **{before.channel.name}**"
-            elif not before.channel and after.channel:
-                action = f"Joined **{after.channel.name}**"
-            else:
-                action = f"Switched **{before.channel.name} → {after.channel.name}**"
+        e.add_field(
+            name="User",
+            value=member.mention,
+            inline=False
+        )
 
-            e.add_field(name="Action", value=action, inline=False)
+        e.add_field(
+            name="From",
+            value=before.channel.name if before.channel else "None",
+            inline=True
+        )
+        e.add_field(
+            name="To",
+            value=after.channel.name if after.channel else "None",
+            inline=True
+        )
+
+        # 🔥 ONLY add this field if a moderator actually moved someone
+        if actor:
             e.add_field(
-                name="By",
-                value=entry.user.mention if entry else "Self",
+                name="Moved By",
+                value=actor.mention,
                 inline=False
             )
 
-            await self.send_log(guild, e)
-
-    # ─────────────────────────────
-    # CHANNEL UPDATE
-    # ─────────────────────────────
-    @commands.Cog.listener()
-    async def on_guild_channel_update(self, before, after):
-        changes = []
-
-        if before.name != after.name:
-            changes.append(f"Name: **{before.name} → {after.name}**")
-
-        if before.overwrites != after.overwrites:
-            changes.append("Permissions updated")
-
-        if not changes:
-            return
-
-        e = self.base("Channel Updated", discord.Color.gold())
-        e.add_field(name="Channel", value=after.mention, inline=False)
-        e.add_field(name="Changes", value="\n".join(changes), inline=False)
-
-        await self.send_log(after.guild, e)
+        await self.send(guild, e)
 
 
 async def setup(bot):

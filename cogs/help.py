@@ -3,77 +3,123 @@ from discord.ext import commands
 from discord import app_commands, Interaction, ui
 
 GITHUB_URL = "https://github.com/sFrostUniverse/Vikrant-bot"
-IMAGE_URL = "attachment://INS_Vikrant.jpg"
 
-class CommandsModal(ui.Modal, title="📜 Vikrant Command Deck"):
-    commands_text = ui.TextInput(
-        label="Command Reference",
-        style=discord.TextStyle.paragraph,
-        default=(
-            "/setup - Begin interactive setup\n"
-            "/config - Show protection config\n"
-            "/trust @user - Add trusted admin\n"
-            "/untrust @user - Remove trusted admin\n"
-            "/panic - Emergency lockdown\n"
-            "/lockdown - Lock all channels\n"
-            "/unlock - Unlock channels\n"
-            "/complain - Submit a complaint\n"
-            "/help - Show this panel"
-        ),
-        required=False,
-        max_length=400,
-    )
 
-    async def on_submit(self, interaction: Interaction):
-        await interaction.response.send_message("📬 Commands sent above, Commander.", ephemeral=True)
-
+# ─────────────────────────────
+# HELP VIEW
+# ─────────────────────────────
 class HelpView(ui.View):
     def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(ui.Button(label="🌐 GitHub", url=GITHUB_URL))
+        super().__init__(timeout=120)
 
-    @ui.button(label="🛠️ Launch Setup", style=discord.ButtonStyle.primary, custom_id="setup_btn")
+        self.add_item(
+            ui.Button(
+                label="🌐 GitHub",
+                url=GITHUB_URL,
+                style=discord.ButtonStyle.link
+            )
+        )
+
+    @ui.button(
+        label="🛠 Run Setup",
+        style=discord.ButtonStyle.primary
+    )
     async def setup_button(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.send_message("To initiate security setup, type `/setup`.", ephemeral=True)
+        await interaction.response.send_message(
+            "🛠 To configure Vikrant, use:\n\n`/setup`",
+            ephemeral=True
+        )
 
-    @ui.button(label="📜 View Commands", style=discord.ButtonStyle.secondary, custom_id="commands_btn")
-    async def commands_button(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.send_modal(CommandsModal())
+    @ui.button(
+        label="🛡 Trusted Admins",
+        style=discord.ButtonStyle.secondary
+    )
+    async def trusted_admins_button(self, interaction: Interaction, button: ui.Button):
+        await interaction.response.send_message(
+            "🛡 Manage trusted admins using:\n"
+            "`/trusted_admins`\n"
+            "`/trust @user`\n"
+            "`/untrust @user`",
+            ephemeral=True
+        )
 
+    @ui.button(
+        label="📊 Logging",
+        style=discord.ButtonStyle.secondary
+    )
+    async def logging_button(self, interaction: Interaction, button: ui.Button):
+        await interaction.response.send_message(
+            "📊 Logs are automatic after setup.\n\n"
+            "They record:\n"
+            "• Member join / leave\n"
+            "• Message edits & deletes\n"
+            "• Voice moves (with moderator attribution)\n"
+            "• Channel & role changes\n\n"
+            "No further setup required.",
+            ephemeral=True
+        )
+
+
+# ─────────────────────────────
+# HELP COG
+# ─────────────────────────────
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="help", description="Access Vikrant's command and protection systems.")
+    @app_commands.command(
+        name="help",
+        description="Show Vikrant Security command panel"
+    )
     async def help(self, interaction: Interaction):
         embed = discord.Embed(
-            title="⚓ Vikrant – Server Defense Command",
+            title="🛡 Vikrant Security System",
             description=(
-                "**Mission:** Safeguard your Discord server from nukes, raids, link spam, and rogue admins.\n\n"
-                "🧭 Use `/setup` to deploy Vikrant's protective systems.\n"
-                "🛠 Configure trusted admins, auto-punishments, and emergency responses."
+                "**Mission:** Protect your server from raids, nukes, and abuse.\n\n"
+                "Vikrant is a **defensive moderation bot** inspired by real-world security systems.\n"
+                "Once configured, protection runs **automatically**."
             ),
             color=discord.Color.dark_blue()
         )
+
         embed.add_field(
-            name="🎯 Core Systems Online",
+            name="🚀 Getting Started",
+            value="Run `/setup` once to initialize security.",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🧠 Core Systems",
             value=(
-                "`Anti-Nuke` `Auto-Punish` `Trusted Admins`\n"
-                "`Complaint Channel` `Lockdown Mode` `Link Spam Detection`"
+                "• Anti-Nuke protection\n"
+                "• Trusted Admin system\n"
+                "• Persistent logging (Dyno-style)\n"
+                "• Emergency lockdowns\n"
+                "• Complaint handling"
             ),
             inline=False
         )
+
         embed.add_field(
-            name="📌 Motto",
-            value="*“Peace Through Preparedness. Protection Without Fail.”*",
+            name="⚠️ Emergency Commands",
+            value=(
+                "`/panic` – Immediate lockdown\n"
+                "`/lockdown` – Lock channels\n"
+                "`/unlock` – Restore access"
+            ),
             inline=False
         )
-        embed.set_footer(text="Vikrant | Indian Navy Inspired Defense", icon_url="https://em-content.zobj.net/thumbs/120/apple/354/anchor_2693.png")
-        embed.set_image(url=IMAGE_URL)
 
-        file = discord.File("assets/vikrant_banner.jpg", filename="INS_Vikrant.jpg")
+        embed.set_footer(
+            text="Vikrant • Protection without compromise"
+        )
 
-        await interaction.response.send_message(embed=embed, view=HelpView(), ephemeral=True, files=[file])
+        await interaction.response.send_message(
+            embed=embed,
+            view=HelpView(),
+            ephemeral=True
+        )
+
 
 async def setup(bot):
     await bot.add_cog(Help(bot))
