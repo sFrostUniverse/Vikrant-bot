@@ -3,6 +3,8 @@ from discord.ext import commands
 import json
 import os
 from datetime import datetime, timezone
+import time
+
 
 CONFIG_FILE = "data/config.json"
 
@@ -30,36 +32,37 @@ class Logs(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.invite_cache = {}
+        self._log_cooldown = {}  # ⏱️ ADD THIS
         bot.loop.create_task(self.cache_invites())
+
 
     # ─────────────────────────────
     # UTIL
-    # ─────────────────────────────
+    # ────────────────────────────
+    
     async def send_log(self, guild, embed):
         channel = get_log_channel(guild)
-        if channel:
-            try:
-                await channel.send(embed=embed)
-            except discord.Forbidden:
-                pass
+        if not channel:
+            return
 
-    def base(self, title, color, user=None, big_avatar=False):
-        e = discord.Embed(
-            title=title,
-            color=color,
-            timestamp=datetime.now(timezone.utc)
-        )
-        e.set_footer(text="Vikrant Logs")
+        now = time.time()
+        last = self._log_cooldown.get(guild.id, 0)
 
-        if user:
-            e.set_author(
-                name=str(user),
-                icon_url=user.display_avatar.url
-            )
-            if big_avatar:
-                e.set_thumbnail(url=user.display_avatar.url)
+        # ⏱️ Cooldown: 1 log per guild every 2 seconds
+        if now - last < 2:
+            return
 
-        return e
+        self._log_cooldown[guild.id] = now
+
+        try:
+            await channel.send(embed=embed)
+
+        except discord.Forbidden:
+            return
+
+        except discord.HTTPException:
+            # 🚫 Rate limited / Cloudflare – silently drop
+            return
 
     async def recent_audit(self, guild, action, target_id=None):
         if not guild.me or not guild.me.guild_permissions.view_audit_log:
@@ -179,15 +182,34 @@ class Logs(commands.Cog):
         if member.bot:
             return
 
-        # join / leave only
-        if before.channel == after.channel:
+        guild = member.guild
+
+        # JOIN VC
+        if before.channel is None and after.channel is not None:
+            e = self.base("Voice Channel Joined", discord.Color.green(), member)
+            e.add_field(
+                name="Channel",
+                value=after.channel.name,
+                inline=False
+            )
+            await self.send_log(guild, e)
             return
 
-        guild = member.guild
-        actor = None
+        # LEAVE VC
+        if before.channel is not None and after.channel is None:
+            e = self.base("Voice Channel Left", discord.Color.orange(), member)
+            e.add_field(
+                name="Channel",
+                value=before.channel.name,
+                inline=False
+            )
+            await self.send_log(guild, e)
+            return
 
-        # ONLY check audit logs if user was moved
-        if before.channel and after.channel:
+        # SWITCH / MOVE
+        if before.channel != after.channel:
+            actor = None
+
             entry = await self.recent_audit(
                 guild,
                 discord.AuditLogAction.member_move,
@@ -196,23 +218,27 @@ class Logs(commands.Cog):
             if entry:
                 actor = entry.user
 
-        e = self.base("Voice Channel Update", discord.Color.blurple(), member)
-        e.add_field(name="User", value=member.mention, inline=False)
-        e.add_field(
-            name="From",
-            value=before.channel.name if before.channel else "None",
-            inline=True
-        )
-        e.add_field(
-            name="To",
-            value=after.channel.name if after.channel else "None",
-            inline=True
-        )
+            e = self.base("Voice Channel Switched", discord.Color.blurple(), member)
+            e.add_field(
+                name="From",
+                value=before.channel.name,
+                inline=True
+            )
+            e.add_field(
+                name="To",
+                value=after.channel.name,
+                inline=True
+            )
 
-        if actor:
-            e.add_field(name="Moved By", value=actor.mention, inline=False)
+            if actor:
+                e.add_field(
+                    name="Moved By",
+                    value=actor.mention,
+                    inline=False
+                )
 
-        await self.send_log(guild, e)
+            await self.send_log(guild, e)
+
 
 # ─────────────────────────────
 # LOAD
